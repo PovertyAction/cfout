@@ -2,7 +2,7 @@
 
 program define cfout , rclass
 	version 10.1
-	
+
 	syntax [varlist] using/ , ID(varname) [noPunct noMATch NAme(string) ALTid(varname) Format(string) Upper Lower noString replace]
 
 	cap isid `id'
@@ -12,22 +12,22 @@ program define cfout , rclass
 		list `id' `altid' if _iddup
 		exit 459
 	}
-	
+
 	if "`upper'`lower'`punct'" != "" & "`string'" != "" {
 		di as err "`upper' `lower' `punct' may not be used with the nostrings option"
 		exit 198
 	}
-	
+
 	preserve
-	
+
 	quietly {
-	
+
 	if "`string'" != "" {
 		ds `varlist' , has(type string)
 		local str `r(varlist)'
 		local varlist: list varlist - str
-	}	
-	
+	}
+
 	keep `id' `altid' `varlist'
 	ds `id', not
 	local varlistm `r(varlist)'
@@ -36,9 +36,9 @@ program define cfout , rclass
 	}
 	tempfile master
 	save `master'
-	
+
 	use "`using'", clear
-	
+
 	cap isid `id'
 	noisily if _rc {
 		duplicates tag `id' , gen(_iddup)
@@ -46,15 +46,15 @@ program define cfout , rclass
 		list `id' `altid' if _iddup
 		exit 459
 	}
-	
+
 	* List variables occuring only in 1 dataset
 	ds `id', not
 	if "`string'" != "" {
 		ds `r(varlist)' , has(type numeric)
 	}
-	local varlistu `r(varlist)'	
+	local varlistu `r(varlist)'
 	local varlistu: list varlistu & varlist
-	
+
 	local onlym: list varlistm - varlistu
 	noisily if "`onlym'" !="" {
 		di _newline as txt "The following variables are not in the using dataset"
@@ -69,15 +69,15 @@ program define cfout , rclass
 			di as res "`c'"
 		}
 	}
-	
-	local varlist: list varlistm & varlistu	
+
+	local varlist: list varlistm & varlistu
 	keep `id' `varlist'
 	tempfile tmpuse
 	save `tmpuse'
-	
+
 	use `master', clear
 	merge `id' using `tmpuse', sort
-	
+
 	* List missing observations
 	if "`match'"=="" {
 		count if _merge==1
@@ -99,24 +99,24 @@ program define cfout , rclass
 			gen `mmas'=1 if _merge==2
 			sort `mmas'
 			noisily di _newline as err "The following observations are only in the using dataset:" _newline ///
-			as txt "`id':" 
+			as txt "`id':"
 			forvalues i=1/`mmasn' {
 				noisily di as res `id'[`i']
 			}
 		}
 	}
-	
+
 	keep if _merge ==3 // Only compare those with 2 entries to keep discrepancies reasonable
 	drop _merge
-	
-	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors	 
+
+	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors
 	if "`upper'`lower'`punct'" != "" & "`strings'" == "" {
 		qui ds , has(type string)
 		local strings `r(varlist)'
 		local stringsnoid: list strings - id
 		cfsetstr `stringsnoid' , `upper' `lower' `punct'
 	}
-	
+
 	if "`altid'" !="" {
 		mata: o = J(1,5,"")
 	}
@@ -127,8 +127,8 @@ program define cfout , rclass
 		local tostrform `"format(`format')"'
 		local format `", "`format'""'
 		// "
-	}	
-	
+	}
+
 	* Make id a single variable if it is a varlist. This feature is not documented
 	local numids: word count `id'
 	if `numids' > 1 {
@@ -150,13 +150,13 @@ program define cfout , rclass
 			local id _`id'
 		}
 	}
-	
+
 	tempvar isdiff
 	gen `isdiff' =.
 	local q = 0
 	local N _N
 	unab varlist: `varlist'
-	
+
 	* Run the discrepency pulling separately if altid is specified
 	if "`altid'" != "" {
 		foreach X in `varlist' {
@@ -172,7 +172,7 @@ program define cfout , rclass
 				if _rc {
 					local diftype `X'
 					continue
-				} 
+				}
 				cfsetstr `X' _cf`X' , `upper' `lower' `punct'
 				count if `X' != _cf`X'
 			}
@@ -190,17 +190,17 @@ program define cfout , rclass
 					mata: st_view(i=.,.,("`id'", "_cf`altid'"), "`isdiff'")
 					mata: st_sview(s=.,.,( "_cf`X'", "`X'"),"`isdiff'")
 					mata: n = J(rows(s),1,"`X'")
-					mata: o = (o \ (strofreal(i `format'),s,n))			
+					mata: o = (o \ (strofreal(i `format'),s,n))
 				}
 				else {
 					mata: st_view(r=.,.,("`id'", "_cf`altid'", "_cf`X'", "`X'"),"`isdiff'")
 					mata: n = J(rows(r),1,"`X'")
 					mata: o = (o \(strofreal(r `format'),n))
-					
+
 				}
 			}
 		}
-	}	
+	}
 	else {
 		foreach X in `varlist' {
 			cap count if `X' != _cf`X'
@@ -215,7 +215,7 @@ program define cfout , rclass
 				if _rc {
 					local diftype `X'
 					continue
-				} 
+				}
 				cfsetstr `X' _cf`X' , `upper' `lower' `punct'
 				count if `X' != _cf`X'
 			}
@@ -233,7 +233,7 @@ program define cfout , rclass
 					mata: st_view(i=.,.,"`id'","`isdiff'")
 					mata: st_sview(s=.,.,( "_cf`X'", "`X'"),"`isdiff'")
 					mata: n = J(rows(s),1,"`X'")
-					mata: o = (o \ (strofreal(i `format'),s,n))			
+					mata: o = (o \ (strofreal(i `format'),s,n))
 				}
 				else {
 					mata: st_view(r=.,.,("`id'", "_cf`X'", "`X'"),"`isdiff'")
@@ -259,8 +259,8 @@ program define cfout , rclass
 	}
 	drop if `id'==""
 	local e = _N
-	
-	
+
+
 	gen order = .									// Sort by original variable order
 	tokenize `varlist'
 	local i = 1
@@ -269,16 +269,16 @@ program define cfout , rclass
 		local ++i
 	}
 	sort `id' order
-		
+
 	if "`labelid'" == "true" {
 		destring `id', replace force
 		label values `id' `idlab'
 		rename `id' `oldid'
 		local id `oldid'
 	}
-	
+
 	}
-	
+
 	if "`diftype'" !="" {
 		di _newline as err "The following variables were not compared because they have a different string/numeric type in master/using:"
 		di as res "`diftype'"
@@ -287,12 +287,12 @@ program define cfout , rclass
 		di as err "The following variables were not compared because they are different in every observation:"
 		di as res "`messyvars'"
 	}
-	
+
 	di _newline _dup(35) as txt "_" _newline as txt "Total Discrepancies: " as res (`e')
 	di as txt "Total Data Points Compared: " as res `q'
 	di as txt "Percent Discrepancies: " %6.3f as res (`e')/`q'*100 as txt " percent"
 	di _dup(35) as txt "_"
-	
+
 	if "`messyvars'"!="" | "`diftype'" !="" {
 		di as err "Note: Not all variables in varlist compared."
 	}
@@ -304,32 +304,32 @@ program define cfout , rclass
 			di as err "Note: Not all observations compared; observations are missing in master data"
 		}
 	}
-		
+
 	if "`name'" != "" {
 		if substr("`name'", -4, 4) != ".csv" {
-			local name "`name'.csv" 
+			local name "`name'.csv"
 		}
 	}
 	else {
 		local name "discrepancy report.csv"
 	}
-	
-	cap mata: mata drop i 
+
+	cap mata: mata drop i
 	cap mata: mata drop r
-	cap mata: mata drop s 
-	cap mata: mata drop o 
+	cap mata: mata drop s
+	cap mata: mata drop o
 	cap mata: mata drop n
-	
+
 	return scalar N = `q'
 	return scalar discrep = `e'
-	
+
 	outsheet `id' `altid' Question Master Using using "`name'", comma `replace'
 	di as txt "(output written to `name')"
-	
 
-	
+
+
 	restore
-end 
+end
 
 prog def cfsetstr
 syntax varlist , [nopunct upper lower]
@@ -342,9 +342,9 @@ syntax varlist , [nopunct upper lower]
 			replace `X' = lower(`X')
 		}
 		if "`punct'" != "" {
-			replace `X' = subinstr(`X', "." , " " , .) 
-			replace `X' = subinstr(`X', "," , " " , .) 
-			replace `X' = subinstr(`X', "!" , "" , .) 
+			replace `X' = subinstr(`X', "." , " " , .)
+			replace `X' = subinstr(`X', "," , " " , .)
+			replace `X' = subinstr(`X', "!" , "" , .)
 			replace `X' = subinstr(`X', "?" , "" , .)
 			replace `X' = subinstr(`X', "'" , "" , .)
 			replace `X' = subinstr(`X', "--" , " " , .)
@@ -357,7 +357,7 @@ syntax varlist , [nopunct upper lower]
 			replace `X' = itrim(`X')
 		}
 	}
-	
+
 end
 
 
