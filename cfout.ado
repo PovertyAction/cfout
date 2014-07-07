@@ -2,7 +2,18 @@
 pr cfout, rclass
 	version 10.1
 
-	syntax [varlist] using/, ID(varname) [noPunct noMATch NAme(string) ALTid(varname) Format(string) Upper Lower noString replace]
+	cap cfout_syntax 2 `0'
+	if _rc {
+		cap cfout_syntax 1 `0'
+		if !_rc {
+			* Do not suppress warning messages.
+			cfout_syntax 1 `0'
+		}
+		else {
+			cfout_syntax 2 `0'
+			/*NOTREACHED*/
+		}
+	}
 
 	cap isid `id'
 	if _rc {
@@ -325,8 +336,6 @@ pr cfout, rclass
 	outsheet `id' `altid' Question Master Using using "`name'", comma `replace'
 	di as txt "(output written to `name')"
 
-
-
 	restore
 end
 
@@ -357,3 +366,49 @@ pr cfsetstr
 		}
 	}
 end
+
+
+/* -------------------------------------------------------------------------- */
+					/* parse user input		*/
+
+pr cfout_syntax
+	gettoken version 0 : 0
+
+	* Check that `0' satisfies version `version' syntax.
+
+	if `version' == 1 {
+		#d ;
+		syntax [varlist] using/,
+			/* Main */
+			id(varname)
+			/* String comparison */
+			[Lower Upper NOPunct]
+			/* Other */
+			[NAme(str) Format(str) ALTid(varname) replace NOString NOMATch]
+		;
+		#d cr
+	}
+	else if `version' == 2 {
+		#d ;
+		syntax [varlist] using/,
+			/* Main */
+			id(varname)
+			/* String comparison */
+			[Lower Upper NOPunct]
+			/* Other */
+			[NAme(str) Format(str) ALTid(varname) replace NOString NOMATch]
+		;
+		#d cr
+	}
+	else {
+		err 198
+	}
+
+	mata: st_local("names", invtokens(st_dir("local", "macro", "*")'))
+	foreach name of loc names {
+		c_local `name' "``name''"
+	}
+end
+
+					/* parse user input		*/
+/* -------------------------------------------------------------------------- */
