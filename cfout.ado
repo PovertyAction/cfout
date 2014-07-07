@@ -1,5 +1,5 @@
 *! v1 by Ryan Knight 10may2011
-program define cfout , rclass
+pr cfout, rclass
 	version 10.1
 
 	syntax [varlist] using/, ID(varname) [noPunct noMATch NAme(string) ALTid(varname) Format(string) Upper Lower noString replace]
@@ -330,7 +330,7 @@ program define cfout , rclass
 	restore
 end
 
-prog def cfsetstr
+pr cfsetstr
 	syntax varlist, [nopunct upper lower]
 
 	foreach X of varlist `varlist' {
