@@ -128,11 +128,6 @@ pr cfout, rclass
 	}
 
 	mata: o = J(1,4,"")
-	if "`format'" != "" {
-		local tostrform `"format(`format')"'
-		local format `", "`format'""'
-		// "
-	}
 
 	* Make id a single variable if it is a varlist. This feature is not documented
 	local numids: word count `id'
@@ -171,7 +166,7 @@ pr cfout, rclass
 				local q =`q' + `N'
 				continue
 			}
-			cap tostring `X' _cf`X', replace `tostrform'
+			cap tostring `X' _cf`X', replace
 			cap confirm numeric variable `X' _cf`X'
 			if _rc {
 				local diftype `X'
@@ -194,12 +189,12 @@ pr cfout, rclass
 				mata: st_view(i=.,.,"`id'","`isdiff'")
 				mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
 				mata: n = J(rows(s),1,"`X'")
-				mata: o = (o \ (strofreal(i `format'),s,n))
+				mata: o = (o \ (strofreal(i),s,n))
 			}
 			else {
 				mata: st_view(r=.,.,("`id'", "_cf`X'", "`X'"),"`isdiff'")
 				mata: n = J(rows(r),1,"`X'")
-				mata: o = (o \(strofreal(r `format'),n))
+				mata: o = (o \(strofreal(r),n))
 			}
 		}
 	}
@@ -350,6 +345,8 @@ pr cfout_syntax
 		;
 		#d cr
 
+		if "`format'" != "" ///
+			warn_deprecated format()
 		if "`altid'" != "" ///
 			warn_deprecated altid()
 	}
@@ -361,7 +358,7 @@ pr cfout_syntax
 			/* string comparison */
 			[Lower Upper NOPunct]
 			/* other */
-			[NAme(str) Format(str) replace NOString NOMATch]
+			[NAme(str) replace NOString NOMATch]
 		;
 		#d cr
 	}

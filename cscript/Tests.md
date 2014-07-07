@@ -21,4 +21,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Deprecated options</td>
 	<td>Specify option <code>altid()</code>.</td>
 </tr>
+<tr>
+	<td>3</td>
+	<td>Deprecated options</td>
+	<td>Specify option <code>format()</code>.</td>
+</tr>
 </table>

@@ -98,6 +98,19 @@ assert r(filelen) == `size'
 assert r(checksum) == `checksum'
 cd ..
 
+* Test 3
+cd 3
+u master, clear
+cfout v1 using using, id(id) replace
+checksum "discrepancy report.csv"
+loc size = r(filelen)
+loc checksum = r(checksum)
+cfout v1 using using, id(id) replace format(%9.1f)
+checksum "discrepancy report.csv"
+assert r(filelen) == `size'
+assert r(checksum) == `checksum'
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* user mistakes		*/
