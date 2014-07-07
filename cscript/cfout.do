@@ -52,11 +52,33 @@ if c(stata_version) >= 13 {
 * Restore globals.
 glo FASTCDPATH : copy loc FASTCDPATH
 
+cd tests
+
+* Erase differences files not in an expected directory.
+loc dirs : dir . dir *
+foreach dir of loc dirs {
+	loc files : dir "`dir'" file "*.csv"
+	foreach file of loc files {
+		erase "`dir'/`file'"
+	}
+
+	loc files : dir "`dir'" file "diff*.dta"
+	foreach file of loc files {
+		erase "`dir'/`file'"
+	}
+}
+
 
 /* -------------------------------------------------------------------------- */
 					/* basic				*/
 
-// ...
+* Test 1
+cd 1
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid)
+assert r(N) == 15000
+assert r(discrep) == 44
+cd ..
 
 
 /* -------------------------------------------------------------------------- */
