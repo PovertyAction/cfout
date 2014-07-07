@@ -1,13 +1,12 @@
 *! v1 by Ryan Knight 10may2011
-
 program define cfout , rclass
 	version 10.1
 
-	syntax [varlist] using/ , ID(varname) [noPunct noMATch NAme(string) ALTid(varname) Format(string) Upper Lower noString replace]
+	syntax [varlist] using/, ID(varname) [noPunct noMATch NAme(string) ALTid(varname) Format(string) Upper Lower noString replace]
 
 	cap isid `id'
 	if _rc {
-		duplicates tag `id' , gen(_iddup)
+		duplicates tag `id', gen(_iddup)
 		di as err "Variable `id' does not uniquely identify the following observations in the master data"
 		list `id' `altid' if _iddup
 		exit 459
@@ -23,7 +22,7 @@ program define cfout , rclass
 	quietly {
 
 	if "`string'" != "" {
-		ds `varlist' , has(type string)
+		ds `varlist', has(type string)
 		local str `r(varlist)'
 		local varlist: list varlist - str
 	}
@@ -41,7 +40,7 @@ program define cfout , rclass
 
 	cap isid `id'
 	noisily if _rc {
-		duplicates tag `id' , gen(_iddup)
+		duplicates tag `id', gen(_iddup)
 		di as err "Variable `id' does not uniquely identify the following observations in the using data"
 		list `id' `altid' if _iddup
 		exit 459
@@ -50,7 +49,7 @@ program define cfout , rclass
 	* List variables occuring only in 1 dataset
 	ds `id', not
 	if "`string'" != "" {
-		ds `r(varlist)' , has(type numeric)
+		ds `r(varlist)', has(type numeric)
 	}
 	local varlistu `r(varlist)'
 	local varlistu: list varlistu & varlist
@@ -111,10 +110,10 @@ program define cfout , rclass
 
 	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors
 	if "`upper'`lower'`punct'" != "" & "`strings'" == "" {
-		qui ds , has(type string)
+		qui ds, has(type string)
 		local strings `r(varlist)'
 		local stringsnoid: list strings - id
-		cfsetstr `stringsnoid' , `upper' `lower' `punct'
+		cfsetstr `stringsnoid', `upper' `lower' `punct'
 	}
 
 	if "`altid'" !="" {
@@ -134,9 +133,9 @@ program define cfout , rclass
 	if `numids' > 1 {
 		local labelid true
 		tempname idlab
-		egen _id = group( `id' ) , lname( `idlab' )
-		local oldid: subinstr local id " " "_" , all
-		local oldid = abbrev("`oldid'" , 32)
+		egen _id = group(`id'), lname(`idlab')
+		local oldid: subinstr local id " " "_", all
+		local oldid = abbrev("`oldid'", 32)
 		local id _id
 	}
 	else {
@@ -167,13 +166,13 @@ program define cfout , rclass
 					local q =`q' + `N'
 					continue
 				}
-				cap tostring `X' _cf`X' , replace `tostrform'
+				cap tostring `X' _cf`X', replace `tostrform'
 				cap confirm numeric variable `X' _cf`X'
 				if _rc {
 					local diftype `X'
 					continue
 				}
-				cfsetstr `X' _cf`X' , `upper' `lower' `punct'
+				cfsetstr `X' _cf`X', `upper' `lower' `punct'
 				count if `X' != _cf`X'
 			}
 			if `r(N)'==0 {
@@ -184,11 +183,11 @@ program define cfout , rclass
 			}
 			else {
 				local q = `q' + `N'
-				replace `isdiff' = cond( `X' != _cf`X', 1, 0)
+				replace `isdiff' = cond(`X' != _cf`X', 1, 0)
 				cap confirm numeric variable `X'
 				if _rc {
 					mata: st_view(i=.,.,("`id'", "_cf`altid'"), "`isdiff'")
-					mata: st_sview(s=.,.,( "_cf`X'", "`X'"),"`isdiff'")
+					mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
 					mata: n = J(rows(s),1,"`X'")
 					mata: o = (o \ (strofreal(i `format'),s,n))
 				}
@@ -210,13 +209,13 @@ program define cfout , rclass
 					local q =`q' + `N'
 					continue
 				}
-				cap tostring `X' _cf`X' , replace `tostrform'
+				cap tostring `X' _cf`X', replace `tostrform'
 				cap confirm numeric variable `X' _cf`X'
 				if _rc {
 					local diftype `X'
 					continue
 				}
-				cfsetstr `X' _cf`X' , `upper' `lower' `punct'
+				cfsetstr `X' _cf`X', `upper' `lower' `punct'
 				count if `X' != _cf`X'
 			}
 			if `r(N)'==0 {
@@ -231,7 +230,7 @@ program define cfout , rclass
 				cap confirm numeric variable `X'
 				if _rc {
 					mata: st_view(i=.,.,"`id'","`isdiff'")
-					mata: st_sview(s=.,.,( "_cf`X'", "`X'"),"`isdiff'")
+					mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
 					mata: n = J(rows(s),1,"`X'")
 					mata: o = (o \ (strofreal(i `format'),s,n))
 				}
@@ -252,7 +251,7 @@ program define cfout , rclass
 	mata: st_addobs(rows(o))
 	if "`altid'" !="" {
 		gen str244 `altid'=""
-		mata: st_sstore(.,("`id'", "`altid'" ,"Master", "Using", "Question"),o)
+		mata: st_sstore(.,("`id'", "`altid'","Master", "Using", "Question"),o)
 	}
 	else {
 		mata: st_sstore(.,("`id'", "Master", "Using", "Question"),o)
@@ -332,7 +331,7 @@ program define cfout , rclass
 end
 
 prog def cfsetstr
-syntax varlist , [nopunct upper lower]
+	syntax varlist, [nopunct upper lower]
 
 	foreach X of varlist `varlist' {
 		if "`upper'" != "" {
@@ -342,22 +341,19 @@ syntax varlist , [nopunct upper lower]
 			replace `X' = lower(`X')
 		}
 		if "`punct'" != "" {
-			replace `X' = subinstr(`X', "." , " " , .)
-			replace `X' = subinstr(`X', "," , " " , .)
-			replace `X' = subinstr(`X', "!" , "" , .)
-			replace `X' = subinstr(`X', "?" , "" , .)
-			replace `X' = subinstr(`X', "'" , "" , .)
-			replace `X' = subinstr(`X', "--" , " " , .)
-			replace `X' = subinstr(`X', "/" , " " , .)
-			replace `X' = subinstr(`X', ";" , " " , .)
-			replace `X' = subinstr(`X', ":" , " " , .)
-			replace `X' = subinstr(`X', "(" , " " , .)
-			replace `X' = subinstr(`X', ")" , " " , .)
+			replace `X' = subinstr(`X', ".", " ", .)
+			replace `X' = subinstr(`X', ",", " ", .)
+			replace `X' = subinstr(`X', "!", "", .)
+			replace `X' = subinstr(`X', "?", "", .)
+			replace `X' = subinstr(`X', "'", "", .)
+			replace `X' = subinstr(`X', "--", " ", .)
+			replace `X' = subinstr(`X', "/", " ", .)
+			replace `X' = subinstr(`X', ";", " ", .)
+			replace `X' = subinstr(`X', ":", " ", .)
+			replace `X' = subinstr(`X', "(", " ", .)
+			replace `X' = subinstr(`X', ")", " ", .)
 			replace `X' = trim(`X')
 			replace `X' = itrim(`X')
 		}
 	}
-
 end
-
-
