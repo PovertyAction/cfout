@@ -16,4 +16,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Example</td>
 	<td>Help file example for <code>cfout</code> version 1.</td>
 </tr>
+<tr>
+	<td>2</td>
+	<td>Deprecated options</td>
+	<td>Specify option <code>altid()</code>.</td>
+</tr>
 </table>

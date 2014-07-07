@@ -82,6 +82,24 @@ cd ..
 
 
 /* -------------------------------------------------------------------------- */
+					/* deprecated options	*/
+
+* Test 2
+cd 2
+u firstEntry, clear
+cfout region-feel_useless using secondEntry, id(uniqueid) replace
+checksum "discrepancy report.csv"
+loc size = r(filelen)
+loc checksum = r(checksum)
+cfout region-feel_useless using secondEntry, id(uniqueid) replace ///
+	altid(no_good_at_all)
+checksum "discrepancy report.csv"
+assert r(filelen) == `size'
+assert r(checksum) == `checksum'
+cd ..
+
+
+/* -------------------------------------------------------------------------- */
 					/* user mistakes		*/
 
 // ...

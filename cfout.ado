@@ -1,6 +1,6 @@
 *! v1 by Ryan Knight 10may2011
 pr cfout, rclass
-	version 10.1
+	vers 10.1
 
 	cap cfout_syntax 2 `0'
 	if _rc {
@@ -19,7 +19,7 @@ pr cfout, rclass
 	if _rc {
 		duplicates tag `id', gen(_iddup)
 		di as err "Variable `id' does not uniquely identify the following observations in the master data"
-		list `id' `altid' if _iddup
+		list `id' if _iddup
 		exit 459
 	}
 
@@ -38,7 +38,7 @@ pr cfout, rclass
 		local varlist: list varlist - str
 	}
 
-	keep `id' `altid' `varlist'
+	keep `id' `varlist'
 	ds `id', not
 	local varlistm `r(varlist)'
 	foreach X in `varlistm' {
@@ -53,7 +53,7 @@ pr cfout, rclass
 	noisily if _rc {
 		duplicates tag `id', gen(_iddup)
 		di as err "Variable `id' does not uniquely identify the following observations in the using data"
-		list `id' `altid' if _iddup
+		list `id' if _iddup
 		exit 459
 	}
 
@@ -127,12 +127,7 @@ pr cfout, rclass
 		cfsetstr `stringsnoid', `upper' `lower' `punct'
 	}
 
-	if "`altid'" !="" {
-		mata: o = J(1,5,"")
-	}
-	else {
-		mata: o = J(1,4,"")
-	}
+	mata: o = J(1,4,"")
 	if "`format'" != "" {
 		local tostrform `"format(`format')"'
 		local format `", "`format'""'
@@ -167,89 +162,44 @@ pr cfout, rclass
 	local N _N
 	unab varlist: `varlist'
 
-	* Run the discrepency pulling separately if altid is specified
-	if "`altid'" != "" {
-		foreach X in `varlist' {
-			cap count if `X' != _cf`X'
-			if _rc {
-				count if mi(`X') & mi(_cf`X')
-				if `r(N)'==`N' {
-					local q =`q' + `N'
-					continue
-				}
-				cap tostring `X' _cf`X', replace `tostrform'
-				cap confirm numeric variable `X' _cf`X'
-				if _rc {
-					local diftype `X'
-					continue
-				}
-				cfsetstr `X' _cf`X', `upper' `lower' `punct'
-				count if `X' != _cf`X'
-			}
-			if `r(N)'==0 {
+	* Run the discrepency.
+	foreach X in `varlist' {
+		cap count if `X' != _cf`X'
+		if _rc {
+			count if mi(`X') & mi(_cf`X')
+			if `r(N)'==`N' {
 				local q =`q' + `N'
+				continue
 			}
-			else if `r(N)'==`N' {
-				local messyvars `messyvars' `X'
+			cap tostring `X' _cf`X', replace `tostrform'
+			cap confirm numeric variable `X' _cf`X'
+			if _rc {
+				local diftype `X'
+				continue
 			}
-			else {
-				local q = `q' + `N'
-				replace `isdiff' = cond(`X' != _cf`X', 1, 0)
-				cap confirm numeric variable `X'
-				if _rc {
-					mata: st_view(i=.,.,("`id'", "_cf`altid'"), "`isdiff'")
-					mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
-					mata: n = J(rows(s),1,"`X'")
-					mata: o = (o \ (strofreal(i `format'),s,n))
-				}
-				else {
-					mata: st_view(r=.,.,("`id'", "_cf`altid'", "_cf`X'", "`X'"),"`isdiff'")
-					mata: n = J(rows(r),1,"`X'")
-					mata: o = (o \(strofreal(r `format'),n))
-
-				}
-			}
+			cfsetstr `X' _cf`X', `upper' `lower' `punct'
+			count if `X' != _cf`X'
 		}
-	}
-	else {
-		foreach X in `varlist' {
-			cap count if `X' != _cf`X'
+		if `r(N)'==0 {
+			local q =`q' + `N'
+		}
+		else if `r(N)'==`N' {
+			local messyvars `messyvars' `X'
+		}
+		else {
+			local q = `q' + `N'
+			replace `isdiff'=cond(`X'!=_cf`X',1,0)
+			cap confirm numeric variable `X'
 			if _rc {
-				count if mi(`X') & mi(_cf`X')
-				if `r(N)'==`N' {
-					local q =`q' + `N'
-					continue
-				}
-				cap tostring `X' _cf`X', replace `tostrform'
-				cap confirm numeric variable `X' _cf`X'
-				if _rc {
-					local diftype `X'
-					continue
-				}
-				cfsetstr `X' _cf`X', `upper' `lower' `punct'
-				count if `X' != _cf`X'
-			}
-			if `r(N)'==0 {
-				local q =`q' + `N'
-			}
-			else if `r(N)'==`N' {
-				local messyvars `messyvars' `X'
+				mata: st_view(i=.,.,"`id'","`isdiff'")
+				mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
+				mata: n = J(rows(s),1,"`X'")
+				mata: o = (o \ (strofreal(i `format'),s,n))
 			}
 			else {
-				local q = `q' + `N'
-				replace `isdiff'=cond(`X'!=_cf`X',1,0)
-				cap confirm numeric variable `X'
-				if _rc {
-					mata: st_view(i=.,.,"`id'","`isdiff'")
-					mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
-					mata: n = J(rows(s),1,"`X'")
-					mata: o = (o \ (strofreal(i `format'),s,n))
-				}
-				else {
-					mata: st_view(r=.,.,("`id'", "_cf`X'", "`X'"),"`isdiff'")
-					mata: n = J(rows(r),1,"`X'")
-					mata: o = (o \(strofreal(r `format'),n))
-				}
+				mata: st_view(r=.,.,("`id'", "_cf`X'", "`X'"),"`isdiff'")
+				mata: n = J(rows(r),1,"`X'")
+				mata: o = (o \(strofreal(r `format'),n))
 			}
 		}
 	}
@@ -260,16 +210,9 @@ pr cfout, rclass
 	gen str244 Master=""
 	gen str244 Using=""
 	mata: st_addobs(rows(o))
-	if "`altid'" !="" {
-		gen str244 `altid'=""
-		mata: st_sstore(.,("`id'", "`altid'","Master", "Using", "Question"),o)
-	}
-	else {
-		mata: st_sstore(.,("`id'", "Master", "Using", "Question"),o)
-	}
+	mata: st_sstore(.,("`id'", "Master", "Using", "Question"),o)
 	drop if `id'==""
 	local e = _N
-
 
 	gen order = .									// Sort by original variable order
 	tokenize `varlist'
@@ -333,7 +276,7 @@ pr cfout, rclass
 	return scalar N = `q'
 	return scalar discrep = `e'
 
-	outsheet `id' `altid' Question Master Using using "`name'", comma `replace'
+	outsheet `id' Question Master Using using "`name'", comma `replace'
 	di as txt "(output written to `name')"
 
 	restore
@@ -369,6 +312,25 @@ end
 
 
 /* -------------------------------------------------------------------------- */
+					/* error message programs	*/
+
+pr assert_is_opt
+	mata: st_local("name", (regexm(st_local("0"), "^(.*)\(\)$") ? ///
+		regexs(1) : st_local("0")))
+	if "`name'" != strtoname("`name'") | strpos("`name'", "`") ///
+		err 198
+end
+
+pr warn_deprecated
+	assert_is_opt `0'
+	di as txt "note: option {cmd:`0'} is deprecated and will be ignored."
+end
+
+					/* error message programs	*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
 					/* parse user input		*/
 
 pr cfout_syntax
@@ -379,24 +341,27 @@ pr cfout_syntax
 	if `version' == 1 {
 		#d ;
 		syntax [varlist] using/,
-			/* Main */
+			/* main */
 			id(varname)
-			/* String comparison */
+			/* string comparison */
 			[Lower Upper NOPunct]
-			/* Other */
+			/* other */
 			[NAme(str) Format(str) ALTid(varname) replace NOString NOMATch]
 		;
 		#d cr
+
+		if "`altid'" != "" ///
+			warn_deprecated altid()
 	}
 	else if `version' == 2 {
 		#d ;
 		syntax [varlist] using/,
-			/* Main */
+			/* main */
 			id(varname)
-			/* String comparison */
+			/* string comparison */
 			[Lower Upper NOPunct]
-			/* Other */
-			[NAme(str) Format(str) ALTid(varname) replace NOString NOMATch]
+			/* other */
+			[NAme(str) Format(str) replace NOString NOMATch]
 		;
 		#d cr
 	}
