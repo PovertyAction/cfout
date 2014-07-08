@@ -367,11 +367,6 @@ pr cfout_syntax
 		;
 		#d cr
 
-		if "`format'" != "" ///
-			warn_deprecated format()
-		if "`altid'" != "" ///
-			warn_deprecated altid()
-
 		if `"`name'"' == "" ///
 			loc name discrepancy report.csv
 		else ///
@@ -379,6 +374,11 @@ pr cfout_syntax
 		if "`replace'" != "" ///
 			warn_deprecated replace, new("saving(,replace)", sub)
 		loc saving "`"`name'"', csv `replace'"
+
+		if "`format'" != "" ///
+			warn_deprecated format()
+		if "`altid'" != "" ///
+			warn_deprecated altid()
 	}
 	else if `version' == 2 {
 		#d ;
