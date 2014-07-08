@@ -247,14 +247,16 @@ pr cfout, rclass
 
 	* Display warning messages.
 	if "`messyvars'"!="" | "`diftype'" !="" {
-		di as err "Note: Not all variables in varlist compared."
+		di as txt "note: not all variables specified were compared."
 	}
 	if "`nomatch'" == "" {
 		if "`musen'"!="0" {
-			di as err "Note: Not all observations compared; observations are missing in using data"
+			di as txt "note: not all observations were compared; " ///
+				"there are observations only in the master data."
 		}
 		if "`mmasn'"!="0" {
-			di as err "Note: Not all observations compared; observations are missing in master data"
+			di as txt "note: not all observations were compared; " ///
+				"there are observations only in the using data."
 		}
 	}
 
