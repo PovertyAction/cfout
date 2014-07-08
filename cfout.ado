@@ -15,16 +15,13 @@ pr cfout, rclass
 		}
 	}
 
+	* Check the ID in the master data.
+	loc id : list uniq id
+	check_id `id', data("the master data")
+
+	* Parse -saving()-.
 	if `:length loc saving' ///
 		parse_saving `saving'
-
-	cap isid `id'
-	if _rc {
-		duplicates tag `id', gen(_iddup)
-		di as err "Variable `id' does not uniquely identify the following observations in the master data"
-		list `id' if _iddup
-		exit 459
-	}
 
 	if "`upper'`lower'`punct'" != "" & "`string'" != "" {
 		di as err "`upper' `lower' `punct' may not be used with the nostrings option"
@@ -52,13 +49,8 @@ pr cfout, rclass
 
 	use "`using'", clear
 
-	cap isid `id'
-	noisily if _rc {
-		duplicates tag `id', gen(_iddup)
-		di as err "Variable `id' does not uniquely identify the following observations in the using data"
-		list `id' if _iddup
-		exit 459
-	}
+	* Check the ID in the using data.
+	check_id `id', data("the using data")
 
 	* List variables occuring only in 1 dataset
 	ds `id', not
@@ -399,6 +391,32 @@ pr cfout_syntax
 	mata: st_local("names", invtokens(st_dir("local", "macro", "*")'))
 	foreach name of loc names {
 		c_local `name' "``name''"
+	}
+end
+
+pr check_id
+	syntax varlist, data(str)
+
+	* "nid" for "number of IDs"
+	loc nid : list sizeof varlist
+
+	cap isid `varlist', missok
+	if _rc {
+		di as err "option id(): " plural(`nid', "variable") " `varlist' " ///
+			plural(`nid', "does", "do") " not uniquely identify " ///
+			"the observations in `data'"
+		ex 459
+	}
+
+	if c(stata_version) >= 13 {
+		qui ds `varlist', has(t strL)
+		if "`r(varlist)'" != "" {
+			di as err "option id(): " ///
+				plural(`nid', "variable") " `r(varlist)' " ///
+				plural(`nid', "is", "are") " strL in `data'"
+			_nostrl error : `r(varlist)'
+			/*NOTREACHED*/
+		}
 	}
 end
 

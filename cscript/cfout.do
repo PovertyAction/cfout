@@ -237,6 +237,36 @@ loc cmd cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diff)
 rcof `"noi `cmd'"' == 602
 cd ..
 
+* Test 15
+cd 15
+u 1, clear
+cfout gender using 2, id(id)
+expand 2
+rcof "noi cfout gender using 2, id(id)" == 459
+u 2, clear
+expand 2
+tempfile 2
+sa `2'
+u 1, clear
+rcof "noi cfout gender using `2', id(id)" == 459
+cd ..
+
+* Test 16
+cd 16
+if c(stata_version) >= 13 {
+	u 1, clear
+	cfout gender using 2, id(id)
+	recast strL id
+	rcof "noi cfout gender using 2, id(id)" == 109
+	u 2, clear
+	recast strL id
+	tempfile 2
+	sa `2'
+	u 1, clear
+	rcof "noi cfout gender using `2', id(id)" == 109
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* finish up			*/

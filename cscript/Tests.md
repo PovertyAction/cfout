@@ -81,4 +81,14 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>saving()</code></td>
 	<td>Option <code>saving(, csv)</code> accepts the filename with or without the <code>.csv</code> file extension.</td>
 </tr>
+<tr>
+	<td>15</td>
+	<td>User mistakes</td>
+	<td>Variable specified to option <code>id()</code> is not unique (either in master or in using data).</td>
+</tr>
+<tr>
+	<td>16</td>
+	<td>User mistakes</td>
+	<td>Variable specified to option <code>id()</code> is <code>strL</code> (either in master or in using data).</td>
+</tr>
 </table>
