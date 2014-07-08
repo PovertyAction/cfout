@@ -15,10 +15,8 @@ pr cfout, rclass
 		}
 	}
 
-	if `:length loc saving' {
+	if `:length loc saving' ///
 		parse_saving `saving'
-		loc name "`fn'"
-	}
 
 	cap isid `id'
 	if _rc {
@@ -267,10 +265,8 @@ pr cfout, rclass
 	return scalar N = `q'
 	return scalar discrep = `e'
 
-	if `:length loc saving' {
-		outsheet `id' Question Master Using using `"`name'"', comma `replace'
-		di as txt "(output written to `name')"
-	}
+	if `:length loc saving' ///
+		save_file, id(`id') `saving_args'
 
 	restore
 end
@@ -381,7 +377,7 @@ pr cfout_syntax
 			warn_deprecated name(), new("saving()")
 		if "`replace'" != "" ///
 			warn_deprecated replace, new("saving(,replace)", sub)
-		loc saving "`"`name'"', `replace'"
+		loc saving "`"`name'"', csv `replace'"
 	}
 	else if `version' == 2 {
 		#d ;
@@ -406,7 +402,8 @@ pr cfout_syntax
 end
 
 pr parse_saving
-	cap noi syntax anything(name=fn id=filename equalok everything), [replace]
+	cap noi syntax anything(name=fn id=filename equalok everything), ///
+		[csv replace]
 	if _rc {
 		error_saving `=_rc'
 		/*NOTREACHED*/
@@ -419,9 +416,10 @@ pr parse_saving
 		/*NOTREACHED*/
 	}
 
-	* Add the .csv extension to `fn' if necessary.
+	* Add a file extension to `fn' if necessary.
 	mata: if (pathsuffix(st_local("fn")) == "") ///
-		st_local("fn", st_local("fn") + ".csv");;
+		st_local("fn", st_local("fn") + ///
+		(st_local("csv") != "" ? ".csv" : ".dta"));;
 
 	* Check `fn' and -replace-.
 	cap conf new f `"`fn'"'
@@ -431,11 +429,41 @@ pr parse_saving
 		/*NOTREACHED*/
 	}
 
+	loc saving_args fn(`"`fn'"') `csv' `replace'
+
 	* Save local macros.
-	foreach name in fn replace {
+	foreach name in saving_args {
 		c_local `name' "``name''"
 	}
 end
 
 					/* parse user input		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* save differences file	*/
+
+pr save_file
+	#d ;
+	syntax,
+		/* main */
+		id(varname)
+		/* -saving()- arguments */
+		fn(str) [csv replace]
+	;
+	#d cr
+
+	keep `id' Question Master Using
+
+	if "`csv'" == "" {
+		qui compress
+		qui sa `"`fn'"', `replace'
+	}
+	else {
+		qui outsheet using `"`fn'"', c `replace'
+	}
+end
+
+					/* save differences file	*/
 /* -------------------------------------------------------------------------- */

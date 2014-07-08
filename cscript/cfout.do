@@ -91,7 +91,7 @@ cfout region-no_good_at_all using secondEntry, id(uniqueid)
 loc files : dir . file *
 assert `:list sizeof files' == 2
 cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diff)
-conf f diff.csv
+conf f diff.dta
 cd ..
 
 * Test 8
@@ -99,7 +99,7 @@ cd 8
 u firstEntry, clear
 cfout region-no_good_at_all using secondEntry, ///
 	id(uniqueid) saving(diff)
-conf f diff.csv
+conf f diff.dta
 #d ;
 rcof `"
 	noi cfout region-no_good_at_all using secondEntry,
@@ -118,6 +118,51 @@ forv i = 1/2 {
 		id(uniqueid) saving(diff, replace)
 	// cf ...
 }
+cd ..
+
+* Test 11
+cd 11
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+assert r(discrep) == 2
+u diff, clear
+assert _N == 2
+compdta expected/diff
+cd ..
+
+* Test 12
+cd 12
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+u diff, clear
+compdta expected/diff
+outsheet using expected_diff.csv, c
+checksum expected_diff.csv
+loc size = r(filelen)
+loc checksum = r(checksum)
+u 1, clear
+cfout gender using 2, id(id) saving(diff, csv)
+checksum diff.csv
+assert r(filelen) == `size'
+assert r(checksum) == `checksum'
+cd ..
+
+* Test 13
+cd 13
+u 1, clear
+cfout gender using 2, id(id) saving(diff.dta)
+erase diff.dta
+cfout gender using 2, id(id) saving(diff)
+conf f diff.dta
+cd ..
+
+* Test 14
+cd 14
+u 1, clear
+cfout gender using 2, id(id) saving(diff.csv, csv)
+erase diff.csv
+cfout gender using 2, id(id) saving(diff, csv)
+conf f diff.csv
 cd ..
 
 
