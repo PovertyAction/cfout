@@ -54,9 +54,18 @@ glo FASTCDPATH : copy loc FASTCDPATH
 
 cd tests
 
-* Erase differences files not in an expected directory.
 loc dirs : dir . dir *
 foreach dir of loc dirs {
+	* Create generated datasets.
+	cap conf f "`dir'/gen.do"
+	if !_rc {
+		cd "`dir'"
+		do gen
+		cd ..
+	}
+
+	* Erase differences files not in a subdirectory.
+
 	loc files : dir "`dir'" file "*.csv"
 	foreach file of loc files {
 		erase "`dir'/`file'"
@@ -78,6 +87,69 @@ u firstEntry, clear
 cfout region-no_good_at_all using secondEntry, id(uniqueid)
 assert r(N) == 15000
 assert r(discrep) == 44
+cd ..
+
+
+/* -------------------------------------------------------------------------- */
+					/* string comparison	*/
+
+* Test 17
+cd 17
+#d ;
+loc optsN "
+	""					5
+	lower				3
+	upper				3
+	nopunct				4
+	"lower nopunct"		1
+	"upper nopunct"		1
+";
+#d cr
+while `:list sizeof optsN' {
+	gettoken opts	optsN : optsN
+	gettoken N		optsN : optsN
+
+	u gen1, clear
+	cfout s x using gen2, id(id) `opts'
+	assert r(discrep) == `N'
+
+	* Redo the string comparison.
+
+	cfout s x using gen2, id(id) saving(diff, replace)
+	u diff, clear
+
+	loc lower lower
+	loc upper upper
+	loc nopunct nopunct
+	loc master Master
+	loc using Using
+	foreach X of var `master' `using' {
+		if `:list lower in opts' ///
+			replace `X' = strlower(`X')
+
+		if `:list upper in opts' ///
+			replace `X' = strupper(`X')
+
+		if `:list nopunct in opts' {
+			replace `X' = subinstr(`X', ".", " ", .)
+			replace `X' = subinstr(`X', ",", " ", .)
+			replace `X' = subinstr(`X', "!", "", .)
+			replace `X' = subinstr(`X', "?", "", .)
+			replace `X' = subinstr(`X', "'", "", .)
+			replace `X' = subinstr(`X', "--", " ", .)
+			replace `X' = subinstr(`X', "/", " ", .)
+			replace `X' = subinstr(`X', ";", " ", .)
+			replace `X' = subinstr(`X', ":", " ", .)
+			replace `X' = subinstr(`X', "(", " ", .)
+			replace `X' = subinstr(`X', ")", " ", .)
+			replace `X' = trim(`X')
+			replace `X' = itrim(`X')
+		}
+	}
+
+	cou if `master' != `using'
+	assert r(N) == `N'
+}
 cd ..
 
 

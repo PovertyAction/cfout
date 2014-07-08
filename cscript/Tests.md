@@ -91,4 +91,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>User mistakes</td>
 	<td>Variable specified to option <code>id()</code> is <code>strL</code> (either in master or in using data).</td>
 </tr>
+<tr>
+	<td>17</td>
+	<td>String comparison</td>
+	<td>Basic tests of options <code>lower</code>, <code>upper</code>, and <code>nopunct</code>.</td>
+</tr>
 </table>

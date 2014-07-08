@@ -1,3 +1,4 @@
 cfout.smcl
 Tests/*/*.csv
 Tests/*/diff*.dta
+Tests/*/gen*.dta
