@@ -239,11 +239,13 @@ pr cfout, rclass
 		di as res "`messyvars'"
 	}
 
-	di _newline _dup(35) as txt "_" _newline as txt "Total Discrepancies: " as res (`e')
-	di as txt "Total Data Points Compared: " as res `q'
-	di as txt "Percent Discrepancies: " %6.3f as res (`e')/`q'*100 as txt " percent"
-	di _dup(35) as txt "_"
+	return scalar N = `q'
+	return scalar discrep = `e'
 
+	* Display summary.
+	display_summary `return(discrep)' `return(N)'
+
+	* Display warning messages.
 	if "`messyvars'"!="" | "`diftype'" !="" {
 		di as err "Note: Not all variables in varlist compared."
 	}
@@ -261,9 +263,6 @@ pr cfout, rclass
 	cap mata: mata drop s
 	cap mata: mata drop o
 	cap mata: mata drop n
-
-	return scalar N = `q'
-	return scalar discrep = `e'
 
 	if `:length loc saving' ///
 		save_file, id(`id') `saving_args'
@@ -438,6 +437,36 @@ pr parse_saving
 end
 
 					/* parse user input		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* summary table		*/
+
+pr display_summary
+	args discrep N
+
+	loc line1a "Number of differences: "
+	loc line1b `discrep'
+	loc line2a "Number of values compared: "
+	loc line2b `N'
+	loc line3a "Percent differences: "
+	loc line3b = strofreal(100 * `discrep' / `N', "%9.3f") + "%"
+	loc linelen = max(strlen("`line1a'`line1b'"), ///
+		strlen("`line2a'`line2b'"), strlen("`line3a'`line3b'"))
+	loc col _col(3)
+	#d ;
+	di	_n
+		`col' "{hline `linelen'}" _n
+		`col' as txt "`line1a'" as res "`line1b'" _n
+		`col' as txt "`line2a'" as res "`line2b'" _n
+		`col' as txt "`line3a'" as res "`line3b'" _n
+		`col' "{hline `linelen'}"
+	;
+	#d cr
+end
+
+					/* summary table		*/
 /* -------------------------------------------------------------------------- */
 
 
