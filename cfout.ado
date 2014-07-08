@@ -15,6 +15,11 @@ pr cfout, rclass
 		}
 	}
 
+	if `:length loc saving' {
+		parse_saving `saving'
+		loc name "`fn'"
+	}
+
 	cap isid `id'
 	if _rc {
 		duplicates tag `id', gen(_iddup)
@@ -253,15 +258,6 @@ pr cfout, rclass
 		}
 	}
 
-	if "`name'" != "" {
-		if substr("`name'", -4, 4) != ".csv" {
-			local name "`name'.csv"
-		}
-	}
-	else {
-		local name "discrepancy report.csv"
-	}
-
 	cap mata: mata drop i
 	cap mata: mata drop r
 	cap mata: mata drop s
@@ -271,8 +267,10 @@ pr cfout, rclass
 	return scalar N = `q'
 	return scalar discrep = `e'
 
-	outsheet `id' Question Master Using using "`name'", comma `replace'
-	di as txt "(output written to `name')"
+	if `:length loc saving' {
+		outsheet `id' Question Master Using using `"`name'"', comma `replace'
+		di as txt "(output written to `name')"
+	}
 
 	restore
 end
@@ -316,9 +314,36 @@ pr assert_is_opt
 		err 198
 end
 
+pr error_saving
+	syntax anything(name=rc id="return code"), [SUBopt(str)]
+
+	if "`subopt'" != "" {
+		assert_is_opt `subopt'
+		di as err "invalid `subopt' suboption"
+	}
+	di as err "invalid saving() option"
+	ex `rc'
+end
+
 pr warn_deprecated
-	assert_is_opt `0'
-	di as txt "note: option {cmd:`0'} is deprecated and will be ignored."
+	syntax anything(name=old), [new(str asis)]
+	
+	assert_is_opt `old'
+
+	if !`:length loc new' ///
+		di as txt "note: option {cmd:`old'} is deprecated and will be ignored."
+	else {
+		loc 0 "`new'"
+		syntax anything(name=new), [SUBopt]
+
+		gettoken new rest : new
+		if `:length loc rest' ///
+			err 198
+
+		loc option = cond("`subopt'" != "", "suboption", "option")
+		di as txt "note: option {cmd:`old'} is deprecated; " ///
+			"use `option' {cmd:`new'} instead."
+	}
 end
 
 					/* error message programs	*/
@@ -349,6 +374,14 @@ pr cfout_syntax
 			warn_deprecated format()
 		if "`altid'" != "" ///
 			warn_deprecated altid()
+
+		if `"`name'"' == "" ///
+			loc name discrepancy report.csv
+		else ///
+			warn_deprecated name(), new("saving()")
+		if "`replace'" != "" ///
+			warn_deprecated replace, new("saving(,replace)", sub)
+		loc saving "`"`name'"', `replace'"
 	}
 	else if `version' == 2 {
 		#d ;
@@ -358,7 +391,7 @@ pr cfout_syntax
 			/* string comparison */
 			[Lower Upper NOPunct]
 			/* other */
-			[NAme(str) replace NOString NOMATch]
+			[SAving(str asis) NOString NOMATch]
 		;
 		#d cr
 	}
@@ -368,6 +401,38 @@ pr cfout_syntax
 
 	mata: st_local("names", invtokens(st_dir("local", "macro", "*")'))
 	foreach name of loc names {
+		c_local `name' "``name''"
+	}
+end
+
+pr parse_saving
+	cap noi syntax anything(name=fn id=filename equalok everything), [replace]
+	if _rc {
+		error_saving `=_rc'
+		/*NOTREACHED*/
+	}
+
+	gettoken fn rest : fn
+	if `:length loc rest' {
+		di as err "invalid filename"
+		error_saving 198
+		/*NOTREACHED*/
+	}
+
+	* Add the .csv extension to `fn' if necessary.
+	mata: if (pathsuffix(st_local("fn")) == "") ///
+		st_local("fn", st_local("fn") + ".csv");;
+
+	* Check `fn' and -replace-.
+	cap conf new f `"`fn'"'
+	if ("`replace'" == "" & _rc) | ("`replace'" != "" & !inlist(_rc, 0, 602)) {
+		cap noi conf new f `"`fn'"'
+		error_saving `=_rc'
+		/*NOTREACHED*/
+	}
+
+	* Save local macros.
+	foreach name in fn replace {
 		c_local `name' "``name''"
 	}
 end

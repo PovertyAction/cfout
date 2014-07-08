@@ -82,6 +82,46 @@ cd ..
 
 
 /* -------------------------------------------------------------------------- */
+					/* -saving()-			*/
+
+* Test 7
+cd 7
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid)
+loc files : dir . file *
+assert `:list sizeof files' == 2
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diff)
+conf f diff.csv
+cd ..
+
+* Test 8
+cd 8
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, ///
+	id(uniqueid) saving(diff)
+conf f diff.csv
+#d ;
+rcof `"
+	noi cfout region-no_good_at_all using secondEntry,
+		id(uniqueid) saving(diff)
+	"' == 602;
+#d cr
+cfout region-no_good_at_all using secondEntry, ///
+	id(uniqueid) saving(diff, replace)
+cd ..
+
+* Test 9
+cd 9
+forv i = 1/2 {
+	u firstEntry, clear
+	cfout region-no_good_at_all using secondEntry, ///
+		id(uniqueid) saving(diff, replace)
+	// cf ...
+}
+cd ..
+
+
+/* -------------------------------------------------------------------------- */
 					/* deprecated options	*/
 
 * Test 2
@@ -111,11 +151,46 @@ assert r(filelen) == `size'
 assert r(checksum) == `checksum'
 cd ..
 
+* Test 4
+cd 4
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid) name(diff)
+conf f diff.csv
+cd ..
+
+* Test 5
+cd 5
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid) replace
+conf f "discrepancy report.csv"
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* user mistakes		*/
 
-// ...
+* Test 6
+cd 6
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, ///
+	id(uniqueid) saving(diff)
+cfout region-no_good_at_all using secondEntry, ///
+	id(uniqueid) saving(diff, replace)
+#d ;
+rcof `"
+	noi cfout region-no_good_at_all using secondEntry,
+		id(uniqueid) saving(diff) replace
+	"' == 198;
+#d cr
+cd ..
+
+* Test 10
+cd 10
+u firstEntry, clear
+loc cmd cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diff)
+`cmd'
+rcof `"noi `cmd'"' == 602
+cd ..
 
 
 /* -------------------------------------------------------------------------- */
