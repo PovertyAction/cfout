@@ -23,8 +23,8 @@ pr cfout, rclass
 	if `:length loc saving' ///
 		parse_saving `saving'
 
-	if "`upper'`lower'`punct'" != "" & "`string'" != "" {
-		di as err "`upper' `lower' `punct' may not be used with the nostrings option"
+	if "`upper'`lower'`nopunct'" != "" & "`nostring'" != "" {
+		di as err "`upper' `lower' `nopunct' may not be used with the nostrings option"
 		exit 198
 	}
 
@@ -32,7 +32,7 @@ pr cfout, rclass
 
 	quietly {
 
-	if "`string'" != "" {
+	if "`nostring'" != "" {
 		ds `varlist', has(type string)
 		local str `r(varlist)'
 		local varlist: list varlist - str
@@ -54,7 +54,7 @@ pr cfout, rclass
 
 	* List variables occuring only in 1 dataset
 	ds `id', not
-	if "`string'" != "" {
+	if "`nostring'" != "" {
 		ds `r(varlist)', has(type numeric)
 	}
 	local varlistu `r(varlist)'
@@ -115,11 +115,11 @@ pr cfout, rclass
 	drop _merge
 
 	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors
-	if "`upper'`lower'`punct'" != "" & "`strings'" == "" {
+	if "`upper'`lower'`nopunct'" != "" & "`nostrings'" == "" {
 		qui ds, has(type string)
 		local strings `r(varlist)'
 		local stringsnoid: list strings - id
-		cfsetstr `stringsnoid', `upper' `lower' `punct'
+		cfsetstr `stringsnoid', `upper' `lower' `nopunct'
 	}
 
 	mata: o = J(1,4,"")
@@ -167,7 +167,7 @@ pr cfout, rclass
 				local diftype `X'
 				continue
 			}
-			cfsetstr `X' _cf`X', `upper' `lower' `punct'
+			cfsetstr `X' _cf`X', `upper' `lower' `nopunct'
 			count if `X' != _cf`X'
 		}
 		if `r(N)'==0 {
@@ -265,7 +265,7 @@ pr cfout, rclass
 end
 
 pr cfsetstr
-	syntax varlist, [nopunct upper lower]
+	syntax varlist, [NOPUNCT upper lower]
 
 	foreach X of varlist `varlist' {
 		if "`upper'" != "" {
@@ -274,7 +274,7 @@ pr cfsetstr
 		if "`lower'" != "" {
 			replace `X' = lower(`X')
 		}
-		if "`punct'" != "" {
+		if "`nopunct'" != "" {
 			replace `X' = subinstr(`X', ".", " ", .)
 			replace `X' = subinstr(`X', ",", " ", .)
 			replace `X' = subinstr(`X', "!", "", .)
