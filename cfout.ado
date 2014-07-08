@@ -92,7 +92,7 @@ pr cfout, rclass
 	merge `id' using `tmpuse', sort
 
 	* List missing observations
-	if "`match'"=="" {
+	if "`nomatch'" == "" {
 		count if _merge==1
 		local musen `r(N)'
 		if `musen' > 0 {
@@ -249,7 +249,7 @@ pr cfout, rclass
 	if "`messyvars'"!="" | "`diftype'" !="" {
 		di as err "Note: Not all variables in varlist compared."
 	}
-	if "`match'"=="" {
+	if "`nomatch'" == "" {
 		if "`musen'"!="0" {
 			di as err "Note: Not all observations compared; observations are missing in using data"
 		}
