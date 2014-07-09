@@ -13,7 +13,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 </tr>
 <tr>
 	<td>1</td>
-	<td>Example</td>
+	<td>Basic</td>
 	<td>Help file example for <code>cfout</code> version 1.</td>
 </tr>
 <tr>
@@ -105,5 +105,45 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>19</td>
 	<td>String comparison</td>
 	<td>Specify string comparison options along with <code>nostring</code>.</td>
+</tr>
+<tr>
+	<td>20</td>
+	<td>User mistakes</td>
+	<td>Specify a variable to option <code>id()</code> that exists in the master but not using data.</td>
+</tr>
+<tr>
+	<td>21</td>
+	<td>User mistakes</td>
+	<td>Specify a variable to option <code>id()</code> that has a different generic type in the master and using data.</td>
+</tr>
+<tr>
+	<td>22</td>
+	<td>Basic</td>
+	<td>Compare two datasets, each of which contains exactly one observation that the other does not.</td>
+</tr>
+<tr>
+	<td>23</td>
+	<td>Basic</td>
+	<td>Compare two datasets, each of which contains exactly one variable that the other does not. Test the effect on <code>r(varonlym)</code>.</td>
+</tr>
+<tr>
+	<td>24</td>
+	<td>Basic</td>
+	<td>Specify a variable that is numeric in one dataset and string in the other.</td>
+</tr>
+<tr>
+	<td>25</td>
+	<td>Basic</td>
+	<td>Duplicate variables specified are ignored.</td>
+</tr>
+<tr>
+	<td>26</td>
+	<td>Basic</td>
+	<td>Specify a variable that differs on every observation.</td>
+</tr>
+<tr>
+	<td>27</td>
+	<td>Basic</td>
+	<td>Specify an ID variable in the <code>varlist</code>.</td>
 </tr>
 </table>

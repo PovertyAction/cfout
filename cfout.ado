@@ -2,6 +2,9 @@
 pr cfout, rclass
 	vers 10.1
 
+	/* ---------------------------------------------------------------------- */
+					/* check input for errors	*/
+
 	/*
 	Version 2 syntax:
 
@@ -33,6 +36,7 @@ pr cfout, rclass
 
 	* Check -lower- and -upper-.
 	if "`lower'" != "" & "`upper'" != "" {
+		* cscript 18
 		di as err "options lower and upper are mutually exclusive"
 		ex 198
 	}
@@ -41,99 +45,169 @@ pr cfout, rclass
 	if `:length loc saving' ///
 		parse_saving `saving'
 
+	* Define `cfvars', the list of variables to compare.
+	loc cfvars : list uniq varlist
+
+	* Remove `id' from `cfvars'.
+	if "`:list cfvars & id'" == "" ///
+		loc warnid 0
+	else {
+		loc cfvars : list cfvars - id
+		loc warnid 1
+	}
+
+	* Define `numvarsm'.
+	qui ds `cfvars', has(t numeric)
+	* "m" suffix for "master": "numvarsm" for "numeric variables master."
+	loc numvarsm `r(varlist)'
+
+	* Define ID locals.
+	qui ds `id', has(t numeric)
+	loc idnumm `r(varlist)'
+	foreach var of loc id {
+		loc idtypes `idtypes' `:type `var''
+	}
+
 	preserve
+
+	keep `id' `cfvars'
+	sort `id'
+
+	tempfile tempmaster
+	qui sa `tempmaster', nol
+
+	qui u `"`using'"', clear
+
+	* Check -id()-.
+	foreach var of loc id {
+		cap conf var `var', exact
+		if _rc {
+			* cscript 20
+			di as err "variable `var' not found in using data" _n ///
+				"(error in option {bf:x()})"
+			ex 111
+		}
+	}
+	check_id `id', data("the using data")
+
+	* Check that each ID variable is numeric in both datasets or
+	* string in both datasets.
+	qui ds `id', has(t numeric)
+	* "u" suffix for "using": "idnumu" for "ID numeric using."
+	loc idnumu `r(varlist)'
+	if !`:list idnumm === idnumu' {
+		foreach var of loc id {
+			if `:list var in idnumm' + `:list var in idnumu' == 1 {
+				* cscript 21
+				loc typem : word `:list posof "`var'" in id' of `idtypes'
+				loc typeu : type `var'
+				di as err "option id(): variable `var' is " ///
+					"`typem' in master but `typeu' in using data"
+				ex 106
+			}
+		}
+	}
+
+					/* check input for errors	*/
+	/* ---------------------------------------------------------------------- */
+
+	* Error messages stop here; warnings start.
+
+	if `warnid' ///
+		di as txt "note: ID variables will not be compared."
+
+	* Variables not in the using data
+	unab all : _all
+	loc varonlym : list cfvars - all
+	if "`varonlym'" != "" {
+		p
+		di "note: the following variables are not in the using data:"
+		di as res "`varonlym'
+		di "{p_end}"
+		loc cfvars : list cfvars - varonlym
+		loc numvarsm : list numvarsm - varonlym
+	}
+	* Return stored result.
+	ret loc varonlym `varonlym'
+
+	* Variables that are numeric in one dataset and string in the other
+	qui ds `cfvars', has(t numeric)
+	loc numvarsu `r(varlist)'
+	loc numonlym : list numvarsm - numvarsu
+	loc numonlyu : list numvarsu - numvarsm
+	loc difftype : list numonlym | numonlyu
+	if "`difftype'" != "" {
+		p
+		di "note: the following variables are numeric in one dataset and"
+		di "string in the other and will not be compared:"
+		di as res "`difftype'
+		di "{p_end}"
+		loc cfvars : list cfvars - difftype
+		loc numvarsm : list numvarsm - difftype
+	}
+	loc numvars `numvarsm'
+	* Return stored result.
+	ret loc difftype `difftype'
+
+	* Implement -nostring-.
+	if "`nostring'" != "" ///
+		loc cfvars `numvars'
+
+	keep `id' `cfvars'
+	sort `id'
+
+	* Use temporary variable names to prevent name conflicts with
+	* `cfvars' in the master data.
+	foreach var of loc cfvars {
+		tempvar cftemp
+		ren `var' `cftemp'
+		loc cftemps : list cftemps | cftemp
+	}
+
+	* Merge.
+	tempvar merge
+	qui merge `id' using `tempmaster', uniq keep(`cfvars') _merge(`merge')
+
+	* Observations in only one dataset
+	foreach data in master using {
+		* "ab" for "abbreviation"
+		loc ab = substr("`data'", 1, 1)
+		loc result = cond("`data'" == "master", 2, 1)
+
+		qui cou if `merge' == `result'
+		* Return stored result.
+		ret sca Nonly`ab' = r(N)
+		if `return(Nonly`ab')' & "`nomatch'" == "" {
+			di as txt "note: the following observations are only in " ///
+				"the `data' data:"
+			sort `id'
+			li `id' if `merge' == `result', ab(32) noo
+			di
+		}
+	}
+	qui keep if `merge' == 3
+
+	loc nmerged = _N
+
+	* Temporary code: continue to use the _cf prefix.
+	forv i = 1/`:list sizeof cfvars' {
+		loc var  : word `i' of `cfvars'
+		loc temp : word `i' of `cftemps'
+		ren `var' _cf`var'
+		ren `temp' `var'
+	}
 
 	quietly {
 
-	if "`nostring'" != "" {
-		ds `varlist', has(type string)
-		local str `r(varlist)'
-		local varlist: list varlist - str
-	}
-
-	keep `id' `varlist'
-	ds `id', not
-	local varlistm `r(varlist)'
-	foreach X in `varlistm' {
-		rename `X' _cf`X'
-	}
-	tempfile master
-	save `master'
-
-	use "`using'", clear
-
-	* Check the ID in the using data.
-	check_id `id', data("the using data")
-
-	* List variables occuring only in 1 dataset
-	ds `id', not
-	if "`nostring'" != "" {
-		ds `r(varlist)', has(type numeric)
-	}
-	local varlistu `r(varlist)'
-	local varlistu: list varlistu & varlist
-
-	local onlym: list varlistm - varlistu
-	noisily if "`onlym'" !="" {
-		di _newline as txt "The following variables are not in the using dataset"
-		foreach c in `onlym' {
-			di as res "`c'"
-		}
-	}
-	local onlyu: list varlistu - varlistm
-	noisily if "`onlyu'" !="" {
-		di _newline as txt "The following variables are not in the master dataset"
-		foreach c in `onlyu' {
-			di as res "`c'"
-		}
-	}
-
-	local varlist: list varlistm & varlistu
-	keep `id' `varlist'
-	tempfile tmpuse
-	save `tmpuse'
-
-	use `master', clear
-	merge `id' using `tmpuse', sort
-
-	* List missing observations
-	if "`nomatch'" == "" {
-		count if _merge==1
-		local musen `r(N)'
-		if `musen' > 0 {
-			tempvar muse
-			gen `muse'=1 if _merge==1
-			sort `muse'
-			noisily di _newline as err "The following observations are only in the master dataset:" _newline ///
-			as txt "`id':"
-			forvalues i=1/`musen' {
-				noisily di as res `id'[`i']
-			}
-		}
-		count if _merge==2
-		local mmasn `r(N)'
-		if `mmasn' >0 {
-			tempvar mmas
-			gen `mmas'=1 if _merge==2
-			sort `mmas'
-			noisily di _newline as err "The following observations are only in the using dataset:" _newline ///
-			as txt "`id':"
-			forvalues i=1/`mmasn' {
-				noisily di as res `id'[`i']
-			}
-		}
-	}
-
-	keep if _merge ==3 // Only compare those with 2 entries to keep discrepancies reasonable
-	drop _merge
-
 	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors
 	if "`upper'`lower'`nopunct'" != "" {
-		qui ds, has(type string)
-		local strings `r(varlist)'
-		local stringsnoid: list strings - id
-		if `:list sizeof stringsnoid' ///
-			cfsetstr `stringsnoid', `upper' `lower' `nopunct'
+		qui ds `cfvars', has(type string)
+		loc strvarsu `r(varlist)'
+		if "`strvarsu'" != "" {
+			loc strvarsu " `strvarsu'"
+			loc strvarsm : subinstr loc strvarsu " " " _cf", all
+			cfsetstr `strvarsm' `strvarsu', `upper' `lower' `nopunct'
+		}
 	}
 
 	mata: o = J(1,4,"")
@@ -164,10 +238,9 @@ pr cfout, rclass
 	gen `isdiff' =.
 	local q = 0
 	local N _N
-	unab varlist: `varlist'
 
 	* Run the discrepency.
-	foreach X in `varlist' {
+	foreach X of loc cfvars {
 		cap count if `X' != _cf`X'
 		if _rc {
 			count if mi(`X') & mi(_cf`X')
@@ -219,7 +292,7 @@ pr cfout, rclass
 	local e = _N
 
 	gen order = .									// Sort by original variable order
-	tokenize `varlist'
+	tokenize `cfvars'
 	local i = 1
 	while "``i''" != "" {
 		replace order = `i' if Question == "``i''"
@@ -236,33 +309,38 @@ pr cfout, rclass
 
 	}
 
-	if "`diftype'" !="" {
-		di _newline as err "The following variables were not compared because they have a different string/numeric type in master/using:"
-		di as res "`diftype'"
-	}
+	loc cfvars : list cfvars - messyvars
 	if "`messyvars'" !="" {
 		di as err "The following variables were not compared because they are different in every observation:"
 		di as res "`messyvars'"
 	}
 
-	return scalar N = `q'
-	return scalar discrep = `e'
+	* Return stored results.
+	ret loc varlist `cfvars'
+	ret loc alldiff `messyvars'
+	ret sca N = `nmerged' * `:list sizeof cfvars'
+	ret sca discrep = `e'
 
 	* Display summary.
 	display_summary `return(discrep)' `return(N)'
 
 	* Display warning messages.
-	if "`messyvars'"!="" | "`diftype'" !="" {
+	if `warnid' | ///
+		"`return(varonlym)'`return(difftype)'`return(alldiff)'" != "" {
 		di as txt "note: not all variables specified were compared."
 	}
 	if "`nomatch'" == "" {
-		if "`musen'"!="0" {
-			di as txt "note: not all observations were compared; " ///
-				"there are observations only in the master data."
+		if return(Nonlym) {
+			p
+			di "note: not all observations were compared;"
+			di "there are observations only in the master data."
+			di "{p_end}"
 		}
-		if "`mmasn'"!="0" {
-			di as txt "note: not all observations were compared; " ///
-				"there are observations only in the using data."
+		if return(Nonlyu) {
+			p
+			di "note: not all observations were compared;"
+			di "there are observations only in the using data."
+			di "{p_end}"
 		}
 	}
 
@@ -274,8 +352,6 @@ pr cfout, rclass
 
 	if `:length loc saving' ///
 		save_file, id(`id') `saving_args'
-
-	restore
 end
 
 pr cfsetstr
@@ -416,6 +492,7 @@ pr check_id
 
 	cap isid `varlist', missok
 	if _rc {
+		* cscript 15
 		di as err "option id(): " plural(`nid', "variable") " `varlist' " ///
 			plural(`nid', "does", "do") " not uniquely identify " ///
 			"the observations in `data'"
@@ -425,6 +502,7 @@ pr check_id
 	if c(stata_version) >= 13 {
 		qui ds `varlist', has(t strL)
 		if "`r(varlist)'" != "" {
+			* cscript 16
 			di as err "option id(): " ///
 				plural(`nid', "variable") " `r(varlist)' " ///
 				plural(`nid', "is", "are") " strL in `data'"
@@ -457,6 +535,7 @@ pr parse_saving
 	* Check `fn' and -replace-.
 	cap conf new f `"`fn'"'
 	if ("`replace'" == "" & _rc) | ("`replace'" != "" & !inlist(_rc, 0, 602)) {
+		* cscript 8
 		cap noi conf new f `"`fn'"'
 		error_saving `=_rc'
 		/*NOTREACHED*/
@@ -475,7 +554,11 @@ end
 
 
 /* -------------------------------------------------------------------------- */
-					/* summary table		*/
+					/* display programs		*/
+
+pr p
+	di as txt "{p 0 4 2}"
+end
 
 pr display_summary
 	args discrep N
@@ -500,7 +583,7 @@ pr display_summary
 	#d cr
 end
 
-					/* summary table		*/
+					/* display programs		*/
 /* -------------------------------------------------------------------------- */
 
 

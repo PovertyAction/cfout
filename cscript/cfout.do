@@ -82,6 +82,123 @@ u firstEntry, clear
 cfout region-no_good_at_all using secondEntry, id(uniqueid)
 assert r(N) == 15000
 assert r(discrep) == 44
+loc varlist `r(varlist)'
+unab unab : region-no_good_at_all
+assert `:list varlist == unab'
+cd ..
+
+* Test 22
+cd 22
+u 1, clear
+cfout gender using 2, id(id)
+assert r(N) == 998
+assert r(discrep) == 2
+assert r(Nonlym) == 1
+assert r(Nonlyu) == 1
+cd ..
+
+* Test 23
+cd 23
+loc 1not2 region
+loc 2not1 no_good_at_all
+u firstEntry, clear
+unab 1 : _all
+d using secondEntry, varl
+loc 2 `r(varlist)'
+assert `:list 1 == 2'
+drop `2not1'
+sa gen1
+u secondEntry, clear
+drop `1not2'
+sa gen2
+u gen1
+loc id uniqueid
+ds `id', not
+loc noid `r(varlist)'
+foreach varlist in "`noid'" _all {
+	cfout `varlist' using gen2, id(uniqueid)
+	loc r_varlist `r(varlist)'
+	unab expected : `varlist'
+	loc expected : list expected - id
+	loc expected : list expected - 1not2
+	assert `:list r_varlist == expected'
+	loc varonlym `r(varonlym)'
+	assert `:list varonlym == 1not2'
+}
+cd ..
+
+* Test 24
+cd 24
+* Normal
+u firstEntry, clear
+unab varlist : region-no_good_at_all
+cfout `varlist' using secondEntry, id(uniqueid)
+loc r_varlist `r(varlist)'
+assert `:list r_varlist == varlist'
+* -tostring- the master version.
+loc tostring region no_good_at_all
+assert `:list tostring in varlist'
+conf numeric var `tostring'
+tostring `tostring', replace
+conf str var `tostring'
+cfout `varlist' using secondEntry, id(uniqueid)
+loc difftype `r(difftype)'
+assert `:list difftype == tostring'
+loc r_varlist `r(varlist)'
+loc expected : list varlist - difftype
+assert `:list r_varlist == expected'
+* -tostring- the using version.
+u secondEntry, clear
+conf numeric var `tostring'
+tostring `tostring', replace
+conf str var `tostring'
+tempfile 2
+sa `2', replace
+u firstEntry, clear
+cfout `varlist' using `2', id(uniqueid)
+loc difftype `r(difftype)'
+assert `:list difftype == tostring'
+loc r_varlist `r(varlist)'
+loc expected : list varlist - difftype
+assert `:list r_varlist == expected'
+cd ..
+
+* Test 25
+cd 25
+u firstEntry, clear
+forv i = 1/2 {
+	loc ab region-no_good_at_all
+	loc varlist : di _dup(`i') "`ab' "
+	cfout `varlist' using secondEntry, id(uniqueid)
+	assert r(N) == 15000
+	assert r(discrep) == 44
+	loc r_varlist `r(varlist)'
+	unab unab : `ab'
+	assert `:list r_varlist == unab'
+}
+cd ..
+
+* Test 26
+cd 26
+u gen1, clear
+cfout one x using gen2, id(id)
+assert r(N) == 1000
+assert r(discrep) == 0
+assert "`r(varlist)'" == "one"
+assert "`r(alldiff)'" == "x"
+cd ..
+
+* Test 27
+cd 27
+u firstEntry, clear
+foreach vars in region-no_good_at_all "region-no_good_at_all uniqueid" {
+	cfout `vars' using secondEntry, id(uniqueid)
+	assert r(N) == 15000
+	assert r(discrep) == 44
+	loc varlist `r(varlist)'
+	unab unab : region-no_good_at_all
+	assert `:list varlist == unab'
+}
 cd ..
 
 
@@ -351,9 +468,36 @@ u gen1, clear
 rcof "noi cfout s using gen2, id(id) lower upper" == 198
 cd ..
 
+* Test 20
+cd 20
+u 1, clear
+rcof "noi cfout gender using 2, id(id)" == 111
+cd ..
+
+* Test 21
+cd 21
+u 1, clear
+cfout gender using 2, id(id)
+conf numeric var id
+tostring id, replace
+conf str var id
+rcof "noi cfout gender using 2, id(id)" == 106
+u 2, clear
+cfout gender using 1, id(id)
+conf numeric var id
+tostring id, replace
+conf str var id
+tempfile 2
+sa `2'
+u 1, clear
+rcof "noi cfout gender using `2', id(id)" == 106
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* finish up			*/
+
+cd ..
 
 timer off 1
 timer list 1
