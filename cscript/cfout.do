@@ -149,6 +149,15 @@ while `:list sizeof optsN' {
 }
 cd ..
 
+* Test 19
+cd 17
+u gen1, clear
+foreach opt in "" lower upper nopunct {
+	cfout s x using gen2, id(id) `opt' nostring
+	assert r(discrep) == 0
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* -saving()-			*/

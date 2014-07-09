@@ -41,11 +41,6 @@ pr cfout, rclass
 	if `:length loc saving' ///
 		parse_saving `saving'
 
-	if "`upper'`lower'`nopunct'" != "" & "`nostring'" != "" {
-		di as err "`upper' `lower' `nopunct' may not be used with the nostrings option"
-		exit 198
-	}
-
 	preserve
 
 	quietly {
@@ -133,11 +128,12 @@ pr cfout, rclass
 	drop _merge
 
 	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors
-	if "`upper'`lower'`nopunct'" != "" & "`nostrings'" == "" {
+	if "`upper'`lower'`nopunct'" != "" {
 		qui ds, has(type string)
 		local strings `r(varlist)'
 		local stringsnoid: list strings - id
-		cfsetstr `stringsnoid', `upper' `lower' `nopunct'
+		if `:list sizeof stringsnoid' ///
+			cfsetstr `stringsnoid', `upper' `lower' `nopunct'
 	}
 
 	mata: o = J(1,4,"")

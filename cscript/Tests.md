@@ -101,4 +101,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>User mistakes</td>
 	<td>Specify both options <code>lower</code> and <code>upper</code>.</td>
 </tr>
+<tr>
+	<td>19</td>
+	<td>String comparison</td>
+	<td>Specify string comparison options along with <code>nostring</code>.</td>
+</tr>
 </table>
