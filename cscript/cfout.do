@@ -110,13 +110,13 @@ while `:list sizeof optsN' {
 	gettoken N		optsN : optsN
 
 	u gen1, clear
-	cfout s x using gen2, id(id) `opts'
+	cfout s x using gen2, id(id) `opts' saving(diff_opts, replace)
 	assert r(discrep) == `N'
 
 	* Redo the string comparison.
 
-	cfout s x using gen2, id(id) saving(diff, replace)
-	u diff, clear
+	cfout s x using gen2, id(id) saving(diff_no_opts, replace)
+	u diff_no_opts, clear
 
 	loc lower lower
 	loc upper upper
@@ -147,8 +147,10 @@ while `:list sizeof optsN' {
 		}
 	}
 
-	cou if `master' != `using'
-	assert r(N) == `N'
+	keep if `master' != `using'
+	assert _N == `N'
+
+	cf _all using diff_opts
 }
 cd ..
 
