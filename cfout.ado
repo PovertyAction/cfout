@@ -2,6 +2,18 @@
 pr cfout, rclass
 	vers 10.1
 
+	/*
+	Version 2 syntax:
+
+	syntax [varlist] using/,
+		/* main */
+		id(varname)
+		/* string comparison */
+		[Lower Upper NOPunct]
+		/* other */
+		[SAving(str asis) NOString NOMATch]
+	*/
+
 	cap cfout_syntax 2 `0'
 	if _rc {
 		cap cfout_syntax 1 `0'
@@ -18,6 +30,12 @@ pr cfout, rclass
 	* Check the ID in the master data.
 	loc id : list uniq id
 	check_id `id', data("the master data")
+
+	* Check -lower- and -upper-.
+	if "`lower'" != "" & "`upper'" != "" {
+		di as err "options lower and upper are mutually exclusive"
+		ex 198
+	}
 
 	* Parse -saving()-.
 	if `:length loc saving' ///

@@ -96,4 +96,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>String comparison</td>
 	<td>Basic tests of options <code>lower</code>, <code>upper</code>, and <code>nopunct</code>.</td>
 </tr>
+<tr>
+	<td>18</td>
+	<td>User mistakes</td>
+	<td>Specify both options <code>lower</code> and <code>upper</code>.</td>
+</tr>
 </table>

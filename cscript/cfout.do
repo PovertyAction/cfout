@@ -56,24 +56,19 @@ cd tests
 
 loc dirs : dir . dir *
 foreach dir of loc dirs {
+	foreach pat in *.csv diff*.dta gen*.dta {
+		loc files : dir "`dir'" file "`pat'"
+		foreach file of loc files {
+			erase "`dir'/`file'"
+		}
+	}
+
 	* Create generated datasets.
 	cap conf f "`dir'/gen.do"
 	if !_rc {
 		cd "`dir'"
 		do gen
 		cd ..
-	}
-
-	* Erase differences files not in a subdirectory.
-
-	loc files : dir "`dir'" file "*.csv"
-	foreach file of loc files {
-		erase "`dir'/`file'"
-	}
-
-	loc files : dir "`dir'" file "diff*.dta"
-	foreach file of loc files {
-		erase "`dir'/`file'"
 	}
 }
 
@@ -339,6 +334,12 @@ if c(stata_version) >= 13 {
 	u 1, clear
 	rcof "noi cfout gender using `2', id(id)" == 109
 }
+cd ..
+
+* Test 18
+cd 17
+u gen1, clear
+rcof "noi cfout s using gen2, id(id) lower upper" == 198
 cd ..
 
 
