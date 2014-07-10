@@ -189,137 +189,40 @@ pr cfout, rclass
 
 	loc nmerged = _N
 
-	* Temporary code: continue to use the _cf prefix.
+	* Implement string comparison options.
 	forv i = 1/`:list sizeof cfvars' {
 		loc var  : word `i' of `cfvars'
 		loc temp : word `i' of `cftemps'
-		ren `var' _cf`var'
-		ren `temp' `var'
+		cap conf str var `var'
+		if !_rc ///
+			cfsetstr `var' `temp', `lower' `upper' `nopunct'
 	}
 
-	quietly {
-
-	* Format string vars so you aren't counting differences in case, punctuation or spacing as errors
-	if "`upper'`lower'`nopunct'" != "" {
-		qui ds `cfvars', has(type string)
-		loc strvarsu `r(varlist)'
-		if "`strvarsu'" != "" {
-			loc strvarsu " `strvarsu'"
-			loc strvarsm : subinstr loc strvarsu " " " _cf", all
-			cfsetstr `strvarsm' `strvarsu', `upper' `lower' `nopunct'
-		}
-	}
-
-	mata: o = J(1,4,"")
-
-	* Make id a single variable if it is a varlist. This feature is not documented
-	local numids: word count `id'
-	if `numids' > 1 {
-		local labelid true
-		tempname idlab
-		egen _id = group(`id'), lname(`idlab')
-		local oldid: subinstr local id " " "_", all
-		local oldid = abbrev("`oldid'", 32)
-		local id _id
+	if !`:length loc saving' {
+		mata: st_local("discrep", ///
+			strofreal(ndiffs("cfvars", "cftemps", "alldiff"), "%24.0g"))
 	}
 	else {
-		* Encode ID if it's a string to make sending it to mata easier
-		cap confirm numeric variable `id'
-		if _rc {
-			local labelid true
-			tempname idlab
-			encode `id', gen(_`id') label(`idlab')
-			local oldid `id'
-			local id _`id'
-		}
+		save_file, id(`id') cfvars(`cfvars') cftemps(`cftemps') `saving_args'
+		loc alldiff `r(alldiff)'
+		loc discrep = _N
 	}
 
-	tempvar isdiff
-	gen `isdiff' =.
-	local q = 0
-	local N _N
-
-	* Run the discrepency.
-	foreach X of loc cfvars {
-		cap count if `X' != _cf`X'
-		if _rc {
-			count if mi(`X') & mi(_cf`X')
-			if `r(N)'==`N' {
-				local q =`q' + `N'
-				continue
-			}
-			cap tostring `X' _cf`X', replace
-			cap confirm numeric variable `X' _cf`X'
-			if _rc {
-				local diftype `X'
-				continue
-			}
-			cfsetstr `X' _cf`X', `upper' `lower' `nopunct'
-			count if `X' != _cf`X'
-		}
-		if `r(N)'==0 {
-			local q =`q' + `N'
-		}
-		else if `r(N)'==`N' {
-			local messyvars `messyvars' `X'
-		}
-		else {
-			local q = `q' + `N'
-			replace `isdiff'=cond(`X'!=_cf`X',1,0)
-			cap confirm numeric variable `X'
-			if _rc {
-				mata: st_view(i=.,.,"`id'","`isdiff'")
-				mata: st_sview(s=.,.,("_cf`X'", "`X'"),"`isdiff'")
-				mata: n = J(rows(s),1,"`X'")
-				mata: o = (o \ (strofreal(i),s,n))
-			}
-			else {
-				mata: st_view(r=.,.,("`id'", "_cf`X'", "`X'"),"`isdiff'")
-				mata: n = J(rows(r),1,"`X'")
-				mata: o = (o \(strofreal(r),n))
-			}
-		}
+	* Variables different on every observation
+	loc cfvars : list cfvars - alldiff
+	if "`alldiff'" != "" {
+		p
+		di "note: the following variables differ on every observation and"
+		di "will not be compared:"
+		di as res "`alldiff'"
 	}
-
-	drop _all
-	gen str244 `id'=""
-	gen str32 Question=""
-	gen str244 Master=""
-	gen str244 Using=""
-	mata: st_addobs(rows(o))
-	mata: st_sstore(.,("`id'", "Master", "Using", "Question"),o)
-	drop if `id'==""
-	local e = _N
-
-	gen order = .									// Sort by original variable order
-	tokenize `cfvars'
-	local i = 1
-	while "``i''" != "" {
-		replace order = `i' if Question == "``i''"
-		local ++i
-	}
-	sort `id' order
-
-	if "`labelid'" == "true" {
-		destring `id', replace force
-		label values `id' `idlab'
-		rename `id' `oldid'
-		local id `oldid'
-	}
-
-	}
-
-	loc cfvars : list cfvars - messyvars
-	if "`messyvars'" !="" {
-		di as err "The following variables were not compared because they are different in every observation:"
-		di as res "`messyvars'"
-	}
+	* Return stored result.
+	ret loc alldiff `alldiff'
 
 	* Return stored results.
 	ret loc varlist `cfvars'
-	ret loc alldiff `messyvars'
 	ret sca N = `nmerged' * `:list sizeof cfvars'
-	ret sca discrep = `e'
+	ret sca discrep = `discrep'
 
 	* Display summary.
 	display_summary `return(discrep)' `return(N)'
@@ -343,15 +246,6 @@ pr cfout, rclass
 			di "{p_end}"
 		}
 	}
-
-	cap mata: mata drop i
-	cap mata: mata drop r
-	cap mata: mata drop s
-	cap mata: mata drop o
-	cap mata: mata drop n
-
-	if `:length loc saving' ///
-		save_file, id(`id') `saving_args'
 end
 
 pr cfsetstr
@@ -590,17 +484,54 @@ end
 /* -------------------------------------------------------------------------- */
 					/* save differences file	*/
 
-pr save_file
+pr save_file, rclass
 	#d ;
 	syntax,
 		/* main */
-		id(varname)
+		id(varname) cfvars(varlist) cftemps(varlist)
 		/* -saving()- arguments */
 		fn(str) [csv replace]
 	;
 	#d cr
 
-	keep `id' Question Master Using
+	* Index `id'.
+	* "ididx" for "ID index"
+	tempvar ididx
+	gen double `ididx' = _n
+	qui compress `ididx'
+	preserve
+	keep `id' `ididx'
+	sort `ididx'
+	tempfile idmap
+	qui sa `idmap'
+	restore
+	drop `id'
+
+	#d ;
+	mata: load_diffs(
+		/* variable lists */
+		"ididx", "cfvars", "cftemps",
+		/* other */
+		"alldiff"
+	);
+	#d cr
+
+	tempvar order
+	gen double `order' = _n
+
+	* Merge back in the ID variables.
+	sort `ididx'
+	tempvar merge
+	qui merge `ididx' using `idmap', uniqus _merge(`merge')
+	qui drop if `merge' == 2
+	drop `ididx' `merge'
+
+	* Sort so that within `id', Question remains sorted by
+	* the original variable order.
+	sort `id' `order'
+	drop `order'
+
+	order `id' Question Master Using
 
 	if "`csv'" == "" {
 		qui compress
@@ -609,7 +540,254 @@ pr save_file
 	else {
 		qui outsheet using `"`fn'"', c `replace'
 	}
+
+	ret loc alldiff `alldiff'
 end
 
 					/* save differences file	*/
 /* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* type definitions, etc.	*/
+
+vers 10.1
+
+loc RS	real scalar
+loc RR	real rowvector
+loc RC	real colvector
+loc RM	real matrix
+loc SS	string scalar
+loc SR	string rowvector
+loc SC	string colvector
+loc SM	string matrix
+loc TS	transmorphic scalar
+loc TR	transmorphic rowvector
+loc TC	transmorphic colvector
+loc TM	transmorphic matrix
+
+loc boolean		`RS'
+loc True		1
+loc False		1
+
+* A local macro name
+loc lclname		`SS'
+
+mata:
+
+					/* type definitions, etc.	*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* interface with Stata		*/
+
+void st_sviewL(`SM' V, `RM' i, `TR' j)
+{
+	`RS' n, ctr
+	`boolean' any
+
+	any = `False'
+	ctr = 0
+	n = length(j)
+	while (++ctr <= n & !any)
+		any = st_vartype(j[ctr]) == "strL"
+
+	if (any)
+		V = st_sdata(i, j)
+	else {
+		pragma unset V
+		st_sview(V, i, j)
+	}
+}
+
+`SS' smallest_vartype(`TC' var)
+{
+	`RS' min, max
+	`SS' strpound
+
+	if (eltype(var) == "real") {
+		if (!all(var :== floor(var)))
+			return("double")
+		else {
+			min = min(var)
+			max = max(var)
+
+			if (min >= -127 & max <= 100)
+				return("byte")
+			if (min >= -32767 & max <= 32740)
+				return("int")
+			if (min >= -9999999 & max <= 9999999)
+				return("float")
+			if (min >= -2147483647 & max <= 2147483620)
+				return("long")
+			return("double")
+		}
+	}
+	else if (eltype(var) == "string") {
+		max = max(strlen(var))
+		strpound = sprintf("str%f", min((max((max, 1)), c("maxstrvarlen"))))
+		if (c("stata_version") < 13)
+			return(strpound)
+		return(max <= c("maxstrvarlen") ? strpound : "strL")
+	}
+	else {
+		_error("invalid var")
+	}
+	/*NOTREACHED*/
+}
+
+void st_store_new(`TC' vals, `SS' name, |`SS' varlab)
+{
+	`RS' idx, nobs
+
+	if (!anyof(("real", "string"), eltype(vals)))
+		_error("invalid vals")
+
+	nobs = rows(vals)
+	if (nobs > st_nobs())
+		st_addobs(nobs - st_nobs())
+
+	idx = st_addvar(smallest_vartype(vals), name)
+	if (nobs) {
+		if (eltype(vals) == "real")
+			st_store((1, nobs), idx, vals)
+		else
+			st_sstore((1, nobs), idx, vals)
+	}
+
+	st_varlabel(idx, varlab)
+}
+
+					/* interface with Stata		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* create differences dataset	*/
+
+// "ndiffs" for "number of differences"
+`RS' ndiffs(`lclname' _cfvars, `lclname' _cftemps, `lclname' _alldiff)
+{
+	`RS' vardiffs, ndiffs, nvars, i
+	`SR' cfvars, cftemps, alldiff
+	`TC' master, usingval
+
+	ndiffs = 0
+	cfvars  = tokens(st_local(_cfvars))
+	cftemps = tokens(st_local(_cftemps))
+	nvars = length(cfvars)
+	assert(nvars == length(cftemps))
+	for (i = 1; i <= nvars; i++) {
+		pragma unset master
+		pragma unset usingval
+		if (st_isnumvar(cfvars[i])) {
+			st_view(master,   ., cfvars[i])
+			st_view(usingval, ., cftemps[i])
+		}
+		else {
+			st_sviewL(master   = "", ., cfvars[i])
+			st_sviewL(usingval = "", ., cftemps[i])
+		}
+		vardiffs = sum(master :!= usingval)
+
+		if (vardiffs != st_nobs())
+			ndiffs = ndiffs + vardiffs
+		else {
+			pragma unset alldiff
+			alldiff = alldiff, cfvars[i]
+		}
+	}
+
+	st_local(_alldiff, invtokens(alldiff))
+	return(ndiffs)
+}
+
+// Create and load the differences dataset.
+void load_diffs(
+	/* variable lists */
+	`lclname' _id, `lclname' _cfvars, `lclname' _cftemps,
+	/* other */
+	`lclname' _alldiff)
+{
+	// "n" prefix for "number of": "ncomps" for "number of comparisons."
+	`RS' firstrow, lastrow, nvars, ncomps, ndiffs, i
+	`RC' id_merge, id_diff, diff, select
+	`SS' id_name
+	`SR' cfvars, cftemps
+	`SC' var, master, usingval
+	`SM' comps
+	// "mu" for "master/using"
+	`TM' mu
+
+	// ID variables
+	id_name = st_local(_id)
+	// id_merge is a view onto the ID variable in the merged dataset.
+	// It must be the first variable in the dataset so that
+	// the view does not need to be updated.
+	stata("order " + id_name)
+	pragma unset id_merge
+	st_view(id_merge, ., id_name)
+
+	// Determine the number of observations of the differences dataset.
+	// The relatively small time cost of this is justified by
+	// the far greater cost of resizing the vectors in
+	// each iteration of the loop below.
+	cfvars  = tokens(st_local(_cfvars))
+	cftemps = tokens(st_local(_cftemps))
+	nvars = length(cfvars)
+	assert(nvars == length(cftemps))
+	ncomps = ndiffs(_cfvars, _cftemps, _alldiff)
+
+	// Variables of the differences dataset
+	id_diff = J(ncomps, 1, .)
+	var = master = usingval = J(ncomps, 1, "")
+
+	firstrow = 1
+	for (i = 1; i <= nvars; i++) {
+		// Make mu a view onto cfvars[i] and cftemps[i].
+		pragma unset mu
+		if (st_isnumvar(cfvars[i]))
+			st_view(mu, ., (cfvars[i], cftemps[i]))
+		else
+			st_sviewL(mu = "", ., (cfvars[i], cftemps[i]))
+
+		diff = mu[,1] :!= mu[,2]
+		ndiffs = sum(diff)
+		if (ndiffs != st_nobs()) {
+			select = diff
+			ncomps = ndiffs
+
+			if (ncomps) {
+				// Store the master and using values in comps.
+				if (st_isstrvar(cfvars[i]))
+					comps = select(mu, select)
+				else
+					comps = strofreal(select(mu, select), "%24.0g")
+
+				// Add observations to the differences dataset.
+				lastrow = firstrow + ncomps - 1
+				id_diff[|firstrow \ lastrow|] = select(id_merge, select)
+				var[|firstrow \ lastrow|] = J(ncomps, 1, cfvars[i])
+				master[|firstrow \ lastrow|] = comps[,1]
+				usingval[|firstrow \ lastrow|] = comps[,2]
+				firstrow = firstrow + ncomps
+			}
+		}
+
+		// This should require no view updates.
+		st_dropvar((cfvars[i], cftemps[i]))
+	}
+
+	// Load the differences dataset.
+	st_dropvar(.)
+	st_store_new(id_diff, id_name)
+	st_store_new(var, "Question", "Variable name")
+	st_store_new(master, "Master", "Master value")
+	st_store_new(usingval, "Using", "Using value")
+}
+
+					/* create differences dataset	*/
+/* -------------------------------------------------------------------------- */
+
+end
