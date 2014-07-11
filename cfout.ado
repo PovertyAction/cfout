@@ -44,7 +44,7 @@ pr cfout, rclass
 	* Parse -saving()-.
 	if `:length loc saving' {
 		parse_saving, id(`id'): `saving'
-		loc saving_args "`s(save_file)'"
+		loc saving_args "`s(save_diffs)'"
 	}
 
 	* Define `cfvars', the list of variables to compare.
@@ -205,7 +205,7 @@ pr cfout, rclass
 			strofreal(ndiffs("cfvars", "cftemps", "alldiff"), "%24.0g"))
 	}
 	else {
-		save_file, id(`id') cfvars(`cfvars') cftemps(`cftemps') `saving_args'
+		save_diffs, id(`id') cfvars(`cfvars') cftemps(`cftemps') `saving_args'
 		loc alldiff `r(alldiff)'
 		loc discrep = _N
 	}
@@ -502,11 +502,11 @@ pr parse_saving, sclass
 		}
 	}
 
-	* Return arguments for -save_file-.
+	* Return arguments for -save_diffs-.
 	loc args fn(`"`fn'"') ///
 		variable(`variable') masterval(`masterval') usingval(`usingval') ///
 		`csv' `replace'
-	sret loc save_file "`args'"
+	sret loc save_diffs "`args'"
 end
 
 					/* parse user input		*/
@@ -548,9 +548,9 @@ end
 
 
 /* -------------------------------------------------------------------------- */
-					/* save differences file	*/
+					/* save differences dataset		*/
 
-pr save_file, rclass
+pr save_diffs, rclass
 	#d ;
 	syntax,
 		/* main */
@@ -612,7 +612,7 @@ pr save_file, rclass
 	ret loc alldiff `alldiff'
 end
 
-					/* save differences file	*/
+					/* save differences dataset		*/
 /* -------------------------------------------------------------------------- */
 
 
