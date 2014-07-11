@@ -42,8 +42,10 @@ pr cfout, rclass
 	}
 
 	* Parse -saving()-.
-	if `:length loc saving' ///
-		parse_saving `saving'
+	if `:length loc saving' {
+		parse_saving, id(`id'): `saving'
+		loc saving_args "`s(save_file)'"
+	}
 
 	* Define `cfvars', the list of variables to compare.
 	loc cfvars : list uniq varlist
@@ -287,6 +289,33 @@ pr assert_is_opt
 		err 198
 end
 
+pr error_overlap
+	syntax anything(name=overlap id=overlap), opt1(str) opt2(str) [what(str)]
+
+	* Parse `overlap'.
+	gettoken overlap rest : overlap
+	if !`:length loc overlap' | `:length loc rest' ///
+		err 198
+
+	* Parse -opt*()-.
+	forv i = 1/2 {
+		loc 0 "`opt`i''"
+		syntax anything(name=opt`i'), [SUBopt]
+		loc temp : subinstr loc opt`i' "(" "", cou(loc count)
+		if !`count' ///
+			loc opt`i' `opt`i''()
+		loc sub`i' = "`subopt'" != ""
+	}
+
+	if "`what'" != "" ///
+		di as err "`what' " _c
+	loc options = cond(`sub1' & `sub2', "sub", "") + "options"
+	di as err `"`overlap' cannot be specified to "' ///
+		"both `options' `opt1' and `opt2'"
+	if !(`sub1' & `sub2') ///
+		ex 198
+end
+
 pr error_saving
 	syntax anything(name=rc id="return code"), [SUBopt(str)]
 
@@ -406,14 +435,20 @@ pr check_id
 	}
 end
 
-pr parse_saving
+pr parse_saving, sclass
+	_on_colon_parse `0'
+	loc 0 "`s(before)'"
+	syntax, id(varlist)
+	loc 0 "`s(after)'"
+
 	cap noi syntax anything(name=fn id=filename equalok everything), ///
-		[csv replace]
+		[Variable(name) MASterval(name) USingval(name) csv replace]
 	if _rc {
 		error_saving `=_rc'
 		/*NOTREACHED*/
 	}
 
+	* Parse `fn'.
 	gettoken fn rest : fn
 	if `:length loc rest' {
 		di as err "invalid filename"
@@ -435,12 +470,43 @@ pr parse_saving
 		/*NOTREACHED*/
 	}
 
-	loc saving_args fn(`"`fn'"') `csv' `replace'
+	* Default variable names
+	if "`variable'" == "" ///
+		loc variable Question
+	if "`masterval'" == "" ///
+		loc masterval Master
+	if "`usingval'" == "" ///
+		loc usingval Using
 
-	* Save local macros.
-	foreach name in saving_args {
-		c_local `name' "``name''"
+	* Check variable names.
+	loc opts variable masterval usingval
+	while `:list sizeof opts' {
+		gettoken opt1 opts : opts
+		foreach opt2 of loc opts {
+			loc overlap : list `opt1' & `opt2'
+			if "`overlap'" != "" {
+				gettoken first : overlap
+				error_overlap `first', what(variable) ///
+					opt1(`opt1', sub) opt2(`opt2', sub)
+				error_saving 198
+				/*NOTREACHED*/
+			}
+		}
+
+		loc overlap : list id & `opt1'
+		if "`overlap'" != "" {
+			gettoken first : overlap
+			error_overlap `first', what(variable) ///
+				opt1(id) opt2("saving(,`opt1'())", sub)
+			/*NOTREACHED*/
+		}
 	}
+
+	* Return arguments for -save_file-.
+	loc args fn(`"`fn'"') ///
+		variable(`variable') masterval(`masterval') usingval(`usingval') ///
+		`csv' `replace'
+	sret loc save_file "`args'"
 end
 
 					/* parse user input		*/
@@ -490,7 +556,7 @@ pr save_file, rclass
 		/* main */
 		id(varname) cfvars(varlist) cftemps(varlist)
 		/* -saving()- arguments */
-		fn(str) [csv replace]
+		fn(str) [variable(name) masterval(name) usingval(name) csv replace]
 	;
 	#d cr
 
@@ -511,6 +577,8 @@ pr save_file, rclass
 	mata: load_diffs(
 		/* variable lists */
 		"ididx", "cfvars", "cftemps",
+		/* new variable names */
+		"variable", "masterval", "usingval",
 		/* other */
 		"alldiff"
 	);
@@ -531,7 +599,7 @@ pr save_file, rclass
 	sort `id' `order'
 	drop `order'
 
-	order `id' Question Master Using
+	order `id' `variable' `masterval' `usingval'
 
 	if "`csv'" == "" {
 		qui compress
@@ -707,6 +775,8 @@ void st_store_new(`TC' vals, `SS' name, |`SS' varlab)
 void load_diffs(
 	/* variable lists */
 	`lclname' _id, `lclname' _cfvars, `lclname' _cftemps,
+	/* new variable names */
+	`lclname' _variable, `lclname' _masterval, `lclname' _usingval,
 	/* other */
 	`lclname' _alldiff)
 {
@@ -782,9 +852,9 @@ void load_diffs(
 	// Load the differences dataset.
 	st_dropvar(.)
 	st_store_new(id_diff, id_name)
-	st_store_new(var, "Question", "Variable name")
-	st_store_new(master, "Master", "Master value")
-	st_store_new(usingval, "Using", "Using value")
+	st_store_new(var, st_local(_variable), "Variable name")
+	st_store_new(master, st_local(_masterval), "Master value")
+	st_store_new(usingval, st_local(_usingval), "Using value")
 }
 
 					/* create differences dataset	*/

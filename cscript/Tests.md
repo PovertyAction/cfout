@@ -146,4 +146,14 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Specify an ID variable in the <code>varlist</code>.</td>
 </tr>
+<tr>
+	<td>28</td>
+	<td><code>saving()</code></td>
+	<td>Specify <code>saving(, variable() masterval() usingval())</code>.</td>
+</tr>
+<tr>
+	<td>29</td>
+	<td>User mistakes</td>
+	<td>Specify the same variable to mutually exclusive (sub)options.</td>
+</tr>
 </table>

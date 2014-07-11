@@ -360,6 +360,48 @@ cfout gender using 2, id(id) saving(diff, csv)
 conf f diff.csv
 cd ..
 
+* Test 28
+cd 28
+#d ;
+loc optsnames "
+	""							"Question Master Using"
+	variable(variable)			"variable Master Using"
+	masterval(master_value)		"Question master_value Using"
+	usingval(using_value)		"Question Master using_value"
+	"variable(Question) masterval(Master) usingval(Using)"
+								"Question Master Using"
+	"variable(Master) masterval(Using) usingval(Question)"
+								"Master Using Question"
+	"variable(variable) masterval(master_value) usingval(using_value)"
+								"variable master_value using_value"
+";
+#d cr
+while `:list sizeof optsnames' {
+	gettoken opts  optsnames : optsnames
+	gettoken names optsnames : optsnames
+
+	assert `:list sizeof names' == 3
+	gettoken variable	names : names
+	gettoken master		names : names
+	gettoken usingval	names : names
+
+	u expected/diff, clear
+	foreach var of var Question Master Using {
+		tempvar `var'
+		ren `var' ``var''
+	}
+	ren `Question'	`variable'
+	ren `Master'	`master'
+	ren `Using'		`usingval'
+	tempfile expected
+	sa `expected'
+
+	u 1, clear
+	cfout gender using 2, id(id) saving(diff, `opts' replace)
+	compdta diff `expected'
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* deprecated options	*/
@@ -491,6 +533,28 @@ tempfile 2
 sa `2'
 u 1, clear
 rcof "noi cfout gender using `2', id(id)" == 106
+cd ..
+
+* Test 29
+cd 29
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+#d ;
+foreach opts in
+	variable(id)
+	masterval(id)
+	usingval(id)
+	variable(Master)
+	variable(Using)
+	masterval(Question)
+	masterval(Using)
+	usingval(Question)
+	usingval(Master)
+	"masterval(val) usingval(val)"
+{;
+	#d cr
+	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
+}
 cd ..
 
 
