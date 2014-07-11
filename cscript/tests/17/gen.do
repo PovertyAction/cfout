@@ -18,6 +18,8 @@ loc s
 ;
 #d cr
 
+loc seed "`c(seed)'"
+
 forv i = 1/2 {
 	clear
 
@@ -37,3 +39,5 @@ forv i = 1/2 {
 
 	sa gen`i', replace
 }
+
+set seed `seed'

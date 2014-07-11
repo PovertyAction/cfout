@@ -143,7 +143,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 </tr>
 <tr>
 	<td>27</td>
-	<td>Basic</td>
+	<td><code>id()</code></td>
 	<td>Specify an ID variable in the <code>varlist</code>.</td>
 </tr>
 <tr>
@@ -155,5 +155,30 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>29</td>
 	<td>User mistakes</td>
 	<td>Specify the same variable to mutually exclusive (sub)options.</td>
+</tr>
+<tr>
+	<td>30</td>
+	<td><code>id()</code></td>
+	<td>Specify two numeric variables to option <code>id()</code>.</td>
+</tr>
+<tr>
+	<td>31</td>
+	<td><code>id()</code></td>
+	<td>Specify one numeric and one string variable to option <code>id()</code>.</td>
+</tr>
+<tr>
+	<td>32</td>
+	<td>User mistakes</td>
+	<td>Same as ID 15, but for multiple ID variables.</td>
+</tr>
+<tr>
+	<td>33</td>
+	<td>User mistakes</td>
+	<td>Same as ID 16, but with multiple ID variables specified.</td>
+</tr>
+<tr>
+	<td>34</td>
+	<td><code>id()</code></td>
+	<td>If a variable is specified multiple times to option <code>id()</code>, it appears in the differences dataset only once.</td>
 </tr>
 </table>

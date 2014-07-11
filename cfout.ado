@@ -10,7 +10,7 @@ pr cfout, rclass
 
 	syntax [varlist] using/,
 		/* main */
-		id(varname)
+		id(varlist)
 		/* string comparison */
 		[Lower Upper NOPunct]
 		/* other */
@@ -389,7 +389,7 @@ pr cfout_syntax
 		#d ;
 		syntax [varlist] using/,
 			/* main */
-			id(varname)
+			id(varlist)
 			/* string comparison */
 			[Lower Upper NOPunct]
 			/* other */
@@ -410,12 +410,11 @@ end
 pr check_id
 	syntax varlist, data(str)
 
-	* "nid" for "number of IDs"
-	loc nid : list sizeof varlist
-
 	cap isid `varlist', missok
 	if _rc {
 		* cscript 15
+		* "nid" for "number of IDs"
+		loc nid : list sizeof varlist
 		di as err "option id(): " plural(`nid', "variable") " `varlist' " ///
 			plural(`nid', "does", "do") " not uniquely identify " ///
 			"the observations in `data'"
@@ -426,9 +425,8 @@ pr check_id
 		qui ds `varlist', has(t strL)
 		if "`r(varlist)'" != "" {
 			* cscript 16
-			di as err "option id(): " ///
-				plural(`nid', "variable") " `r(varlist)' " ///
-				plural(`nid', "is", "are") " strL in `data'"
+			loc nothe = regexr("`data'", "^the ", "")
+			di as err "option id(): `nothe':"
 			_nostrl error : `r(varlist)'
 			/*NOTREACHED*/
 		}
@@ -485,6 +483,7 @@ pr parse_saving, sclass
 		foreach opt2 of loc opts {
 			loc overlap : list `opt1' & `opt2'
 			if "`overlap'" != "" {
+				* cscript 29
 				gettoken first : overlap
 				error_overlap `first', what(variable) ///
 					opt1(`opt1', sub) opt2(`opt2', sub)
@@ -495,6 +494,7 @@ pr parse_saving, sclass
 
 		loc overlap : list id & `opt1'
 		if "`overlap'" != "" {
+			* cscript 29
 			gettoken first : overlap
 			error_overlap `first', what(variable) ///
 				opt1(id) opt2("saving(,`opt1'())", sub)
@@ -554,7 +554,7 @@ pr save_diffs, rclass
 	#d ;
 	syntax,
 		/* main */
-		id(varname) cfvars(varlist) cftemps(varlist)
+		id(varlist) cfvars(varlist) cftemps(varlist)
 		/* -saving()- arguments */
 		fn(str) [variable(name) masterval(name) usingval(name) csv replace]
 	;
@@ -798,6 +798,7 @@ void load_diffs(
 	stata("order " + id_name)
 	pragma unset id_merge
 	st_view(id_merge, ., id_name)
+	assert(cols(id_merge) == 1)
 
 	// Determine the number of observations of the differences dataset.
 	// The relatively small time cost of this is justified by

@@ -188,6 +188,10 @@ assert "`r(varlist)'" == "one"
 assert "`r(alldiff)'" == "x"
 cd ..
 
+
+/* -------------------------------------------------------------------------- */
+					/* id()					*/
+
 * Test 27
 cd 27
 u firstEntry, clear
@@ -199,6 +203,50 @@ foreach vars in region-no_good_at_all "region-no_good_at_all uniqueid" {
 	unab unab : region-no_good_at_all
 	assert `:list varlist == unab'
 }
+cd ..
+
+* Test 30
+cd 30
+u gen1, clear
+cfout gender using gen2, id(id1 id2) saving(diff)
+compdta diff gen_diff
+cd ..
+
+* Test 31
+cd 30
+cap mkdir ../31
+loc dtas : dir . file "gen*.dta"
+foreach dta of loc dtas {
+	u "`dta'", clear
+
+	d, varl
+	loc sort `r(sortlist)'
+
+	tostring id2, replace
+	conf numeric var id1
+	conf str var id2
+
+	if "`sort'" != "" ///
+		sort `sort'
+
+	sa "../31/`dta'"
+}
+cd ../31
+u gen1, clear
+cfout gender using gen2, id(id1 id2) saving(diff)
+compdta diff gen_diff
+cd ..
+
+* Test 34
+cd 11
+u 1, clear
+cfout gender using 2, id(id id) saving(diff34)
+compdta diff34 expected/diff
+cd ..
+cd 30
+u gen1, clear
+cfout gender using gen2, id(id1 id2 id1 id2) saving(diff34)
+compdta diff34 gen_diff
 cd ..
 
 
@@ -554,6 +602,36 @@ foreach opts in
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
+}
+cd ..
+
+* Test 32
+cd 30
+u gen1, clear
+cfout gender using gen2, id(id1 id2)
+expand 2
+rcof "noi cfout gender using gen2, id(id1 id2)" == 459
+u gen2, clear
+expand 2
+tempfile 2
+sa `2'
+u gen1, clear
+rcof "noi cfout gender using `2', id(id1 id2)" == 459
+cd ..
+
+* Test 33
+cd 31
+if c(stata_version) >= 13 {
+	u gen1, clear
+	cfout gender using gen2, id(id1 id2)
+	recast strL id2
+	rcof "noi cfout gender using gen2, id(id1 id2)" == 109
+	u gen2, clear
+	recast strL id2
+	tempfile 2
+	sa `2'
+	u gen1, clear
+	rcof "noi cfout gender using `2', id(id1 id2)" == 109
 }
 cd ..
 
