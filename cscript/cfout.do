@@ -603,6 +603,31 @@ assert r(k) == 1
 assert r(min) == 1
 cd ..
 
+* Test 43
+cd 43
+u gen1, clear
+cfout x using gen2, id(id) saving(diff, csv)
+assert r(N) == 2
+assert r(discrep) == 1
+tempname fh
+file open `fh' using diff.csv, r
+file r `fh' line
+file r `fh' line
+file r `fh' blank
+assert !`:length loc blank'
+assert r(eof)
+file close `fh'
+mata:
+line = tokens(st_local("line"), ",")
+line = select(line, line :!= ",")
+assert(length(line) == 4)
+assert(/* id */			line[1] == "2")
+assert(/* variable */	line[2] == "x")
+assert(/* master */		line[3] == "2.0000000000000009")
+assert(/* using */		line[4] == "2.0000000000000018")
+end
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* deprecated options	*/

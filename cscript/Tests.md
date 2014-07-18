@@ -221,4 +221,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>saving()</code></td>
 	<td>The ID's value label association is the same in the two datasets, but the value label itself differs. The master data is preferred.</td>
 </tr>
+<tr>
+	<td>43</td>
+	<td><code>saving()</code></td>
+	<td>Value labels are dropped and numeric display formats are set to <code>%24.0g</code>.</td>
+</tr>
 </table>

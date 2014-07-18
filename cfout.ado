@@ -650,6 +650,15 @@ pr save_diffs, rclass
 		qui sa `"`fn'"', `replace'
 	}
 	else {
+		qui ds, has(t numeric)
+		loc numvars `r(varlist)'
+		if "`numvars'" != "" {
+			foreach var of loc numvars {
+				lab val `var'
+			}
+			form `numvars' %24.0g
+		}
+
 		qui outsheet using `"`fn'"', c `replace'
 	}
 
