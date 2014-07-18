@@ -246,4 +246,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>The differences dataset variables for the master and using values are string if and only if one of the compared variables is string.</td>
 </tr>
+<tr>
+	<td>48</td>
+	<td>Basic</td>
+	<td>The master and using data both have dataset labels and <code>_dta</code> characteristics; the differences dataset should not.</td>
+</tr>
 </table>

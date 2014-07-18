@@ -300,6 +300,24 @@ test47, num: n s_alldiff, dropdiff
 assert "`r(alldiff)'" == "s_alldiff"
 cd ..
 
+* Test 48
+cd 48
+u 1, clear
+lab data "Master label"
+assert "`:data lab'" == "Master label"
+note: Master note
+preserve
+u 2, clear
+lab data "Using label"
+note: Using note
+sa gen2
+restore
+cfout gender using gen2, id(id) saving(diff)
+u diff, clear
+assert "`:data lab'" == ""
+assert "`:char _dta[]'" == ""
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

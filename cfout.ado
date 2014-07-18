@@ -671,6 +671,13 @@ pr save_diffs, rclass
 	order `id' `variable' `masterval' `usingval'
 
 	if "`csv'" == "" {
+		* Remove the dataset's label and characteristics.
+		lab data
+		loc chars : char _dta[]
+		foreach char of loc chars {
+			char _dta[`char']
+		}
+
 		qui compress
 		qui sa `"`fn'"', `replace'
 	}
