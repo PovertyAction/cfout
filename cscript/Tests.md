@@ -181,4 +181,44 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>id()</code></td>
 	<td>If a variable is specified multiple times to option <code>id()</code>, it appears in the differences dataset only once.</td>
 </tr>
+<tr>
+	<td>35</td>
+	<td><code>saving()</code></td>
+	<td>The ID's display format differs in the two datasets. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>36</td>
+	<td><code>saving()</code></td>
+	<td>The ID's variable/value labels are nonblank in the master data, but blank in the using. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>37</td>
+	<td><code>saving()</code></td>
+	<td>The ID's variable/value labels are blank in the master data, but nonblank in the using. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>38</td>
+	<td><code>saving()</code></td>
+	<td>The ID's variable/value labels are nonblank yet differ in the two datasets. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>39</td>
+	<td><code>saving()</code></td>
+	<td>The ID's characteristics differ in the two datasets. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>40</td>
+	<td><code>saving()</code></td>
+	<td>The ID's value label association is the same in the two datasets, but while the value label exists in the using data, it does not in the master. The value label from the using is used.</td>
+</tr>
+<tr>
+	<td>41</td>
+	<td><code>saving()</code></td>
+	<td>The ID's value label association is the same in the two datasets, but while the value label exists in the master data, it does not in the using. The value label from the master is used.</td>
+</tr>
+<tr>
+	<td>42</td>
+	<td><code>saving()</code></td>
+	<td>The ID's value label association is the same in the two datasets, but the value label itself differs. The master data is preferred.</td>
+</tr>
 </table>

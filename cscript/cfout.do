@@ -450,6 +450,159 @@ while `:list sizeof optsnames' {
 }
 cd ..
 
+* Test 35
+cd 35
+u 1, clear
+form id %24.0g
+preserve
+u 2, clear
+form id %22.0g
+tempfile 2
+sa `2'
+restore
+cfout gender using `2', id(id) saving(diff)
+u diff, clear
+assert "`:format id'" == "%24.0g"
+cd ..
+
+* Test 36
+cd 36
+u 2, clear
+assert "`:val lab id'" == ""
+assert "`:var lab id'" == ""
+u 1, clear
+forv i = 1/1000 {
+	lab de idlab `i' "Value `i'", modify
+}
+lab val id idlab
+lab var id "My label"
+cfout gender using 2, id(id) saving(diff)
+u diff, clear
+assert "`:val lab id'" == "idlab"
+assert "`:var lab id'" == "My label"
+cd ..
+
+* Test 37
+cd 37
+u 1, clear
+assert "`:val lab id'" == ""
+assert "`:var lab id'" == ""
+u 2, clear
+forv i = 1/1000 {
+	lab de idlab `i' "Value `i'", modify
+}
+lab val id idlab
+lab var id "My label"
+tempfile 2
+sa `2'
+u 1, clear
+cfout gender using `2', id(id) saving(diff)
+u diff, clear
+assert "`:val lab id'" == ""
+assert "`:var lab id'" == ""
+cd ..
+
+* Test 38
+cd 38
+forv i = 1/2 {
+	u `i', clear
+	forv j = 1/1000 {
+		lab de idlab`i' `j' "`j' (`i'.dta)", modify
+	}
+	lab val id idlab`i'
+	lab var id "My label `i'"
+	sa gen`i'
+}
+u gen1, clear
+cfout gender using gen2, id(id) saving(diff)
+u diff, clear
+assert "`:val lab id'" == "idlab1"
+assert "`:var lab id'" == "My label 1"
+cd ..
+
+* Test 39
+cd 39
+u 2, clear
+assert "`:char id[]'" == ""
+char id[Same] 1
+char id[Different] 2
+char id[Only2] 3
+sa gen2
+u 1, clear
+assert "`:char id[]'" == ""
+char id[Same] 1
+char id[Different] 4
+char id[Only1] 5
+cfout gender using gen2, id(id) saving(diff)
+u diff, clear
+loc chars : char id[]
+loc expected Same Different Only1
+assert `:list chars === expected'
+assert `id[Same]' == 1
+assert `id[Different]' == 4
+assert `id[Only1]' == 5
+cd ..
+
+* Test 40
+cd 40
+u 1, clear
+lab val id idlab
+sa gen1
+u 2, clear
+lab de idlab 1 "Value 1"
+lab val id idlab
+sa gen2
+u gen1, clear
+cfout gender using gen2, id(id) saving(diff)
+lab drop _all
+u diff, clear
+assert "`:val lab id'" == "idlab"
+lab dir
+assert "`r(names)'" == "idlab"
+lab li idlab
+assert r(k) == 1
+assert r(min) == 1
+cd ..
+
+* Test 41
+cd 41
+u 2, clear
+lab val id idlab
+sa gen2
+u 1, clear
+lab de idlab 1 "Value 1"
+lab val id idlab
+cfout gender using gen2, id(id) saving(diff)
+lab drop _all
+u diff, clear
+assert "`:val lab id'" == "idlab"
+lab dir
+assert "`r(names)'" == "idlab"
+lab li idlab
+assert r(k) == 1
+assert r(min) == 1
+cd ..
+
+* Test 42
+cd 42
+u 1, clear
+lab de idlab 1 "1 (1.dta)"
+lab val id idlab
+sa gen1
+u 2, clear
+lab de idlab 2 "2 (2.dta)" 3 "3 (2.dta)"
+lab val id idlab
+sa gen2
+u gen1, clear
+cfout gender using gen2, id(id) saving(diff)
+lab drop _all
+u diff, clear
+assert "`:val lab id'" == "idlab"
+lab li idlab
+assert r(k) == 1
+assert r(min) == 1
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* deprecated options	*/

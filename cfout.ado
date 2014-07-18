@@ -68,6 +68,11 @@ pr cfout, rclass
 	loc idnumm `r(varlist)'
 	foreach var of loc id {
 		loc idtypes `idtypes' `:type `var''
+		loc idformats `idformats' `:form `var''
+
+		loc varlab st_varlabel(st_local("var"))
+		mata: st_local("idvarlabs", st_local("idvarlabs") + ///
+			sprintf("%f:%s", strlen(`varlab'), `varlab'))
 	}
 
 	preserve
@@ -77,6 +82,19 @@ pr cfout, rclass
 
 	tempfile tempmaster
 	qui sa `tempmaster', nol
+
+	* Save value label names and the associations between
+	* variables and value labels.
+	qui lab dir
+	loc labnames `r(names)'
+	qui ds, has(t numeric)
+	foreach var in `r(varlist)' {
+		loc labassoc `labassoc' `var' "`:val lab `var''"
+	}
+
+	drop _all
+	tempfile vallabs
+	qui sa `vallabs', empty o
 
 	qui u `"`using'"', clear
 
@@ -166,9 +184,35 @@ pr cfout, rclass
 		loc cftemps : list cftemps | cftemp
 	}
 
+	* Merge, using the value labels and ID metadata from the master data.
+	* Remove ID characteristics from the using data.
+	foreach var of loc id {
+		loc chars : char `var'[]
+		foreach char of loc chars {
+			char `var'[`char']
+		}
+	}
 	* Merge.
 	tempvar merge
 	qui merge `id' using `tempmaster', uniq keep(`cfvars') _merge(`merge')
+	* Use the ID metadata from the master data.
+	foreach var of loc id {
+		gettoken format idformats : idformats
+		format `var' `format'
+	}
+	mata: attach_varlabs("id", "idvarlabs")
+	* Add value labels from the master data, including orphans.
+	foreach lab of loc labnames {
+		cap lab drop `lab'
+	}
+	qui append using `vallabs'
+	while `:list sizeof labassoc' {
+		gettoken var labassoc : labassoc
+		gettoken lab labassoc : labassoc
+		cap conf var `var', exact
+		if !_rc ///
+			lab val `var' `lab'
+	}
 
 	* Observations in only one dataset
 	foreach data in master using {
@@ -329,7 +373,7 @@ end
 
 pr warn_deprecated
 	syntax anything(name=old), [new(str asis)]
-	
+
 	assert_is_opt `old'
 
 	if !`:length loc new' ///
@@ -725,6 +769,27 @@ void st_store_new(`TC' vals, `SS' name, |`SS' varlab)
 	}
 
 	st_varlabel(idx, varlab)
+}
+
+void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
+{
+	`RS' pos, len, n, i
+	`SS' varlabs
+	`SR' vars
+
+	vars = tokens(st_local(_varlist))
+	varlabs = st_local(_varlabs)
+
+	n = length(vars)
+	for (i = 1; i <= n; i++) {
+		pos = strpos(varlabs, ":")
+		assert(pos)
+		len = strtoreal(substr(varlabs, 1, pos - 1))
+		assert(len == floor(len) & len >= 0 & len <= 80)
+		st_varlabel(vars[i], substr(varlabs, pos + 1, len))
+		varlabs = substr(varlabs, pos + len + 1, .)
+	}
+	assert(varlabs == "")
 }
 
 					/* interface with Stata		*/
