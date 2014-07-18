@@ -302,34 +302,6 @@ pr cfout, rclass
 	}
 end
 
-pr cfsetstr
-	syntax varlist, [NOPUNCT upper lower]
-
-	foreach X of varlist `varlist' {
-		if "`upper'" != "" {
-			replace `X' = upper(`X')
-		}
-		if "`lower'" != "" {
-			replace `X' = lower(`X')
-		}
-		if "`nopunct'" != "" {
-			replace `X' = subinstr(`X', ".", " ", .)
-			replace `X' = subinstr(`X', ",", " ", .)
-			replace `X' = subinstr(`X', "!", "", .)
-			replace `X' = subinstr(`X', "?", "", .)
-			replace `X' = subinstr(`X', "'", "", .)
-			replace `X' = subinstr(`X', "--", " ", .)
-			replace `X' = subinstr(`X', "/", " ", .)
-			replace `X' = subinstr(`X', ";", " ", .)
-			replace `X' = subinstr(`X', ":", " ", .)
-			replace `X' = subinstr(`X', "(", " ", .)
-			replace `X' = subinstr(`X', ")", " ", .)
-			replace `X' = trim(`X')
-			replace `X' = itrim(`X')
-		}
-	}
-end
-
 
 /* -------------------------------------------------------------------------- */
 					/* error message programs	*/
@@ -602,6 +574,41 @@ pr display_summary
 end
 
 					/* display programs		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* string comparison	*/
+
+pr cfsetstr
+	syntax varlist, [NOPUNCT upper lower]
+
+	foreach X of varlist `varlist' {
+		if "`upper'" != "" {
+			replace `X' = upper(`X')
+		}
+		if "`lower'" != "" {
+			replace `X' = lower(`X')
+		}
+		if "`nopunct'" != "" {
+			replace `X' = subinstr(`X', ".", " ", .)
+			replace `X' = subinstr(`X', ",", " ", .)
+			replace `X' = subinstr(`X', "!", "", .)
+			replace `X' = subinstr(`X', "?", "", .)
+			replace `X' = subinstr(`X', "'", "", .)
+			replace `X' = subinstr(`X', "--", " ", .)
+			replace `X' = subinstr(`X', "/", " ", .)
+			replace `X' = subinstr(`X', ";", " ", .)
+			replace `X' = subinstr(`X', ":", " ", .)
+			replace `X' = subinstr(`X', "(", " ", .)
+			replace `X' = subinstr(`X', ")", " ", .)
+			replace `X' = trim(`X')
+			replace `X' = itrim(`X')
+		}
+	}
+end
+
+					/* string comparison	*/
 /* -------------------------------------------------------------------------- */
 
 
