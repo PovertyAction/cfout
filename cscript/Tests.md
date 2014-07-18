@@ -241,4 +241,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Basic tests of options <code>nostring</code> and <code>nonumeric</code></td>
 </tr>
+<tr>
+	<td>47</td>
+	<td>Basic</td>
+	<td>The differences dataset variables for the master and using values are string if and only if one of the compared variables is string.</td>
+</tr>
 </table>

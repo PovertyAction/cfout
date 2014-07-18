@@ -263,6 +263,43 @@ assert r(N) == 0
 assert r(discrep) == 0
 cd ..
 
+* Test 47
+cd 47
+u gen1, clear
+pr test47, rclass
+	_on_colon_parse `0'
+	loc 0		"`s(before)'"
+	loc cfout	"`s(after)'"
+	syntax, [NUMeric STRing]
+	loc 0 "`cfout'"
+	syntax varlist, *
+
+	if "`numeric'`string'" == "" ///
+		err 198
+	if "`numeric'" != "" & "`string'" != "" ///
+		err 198
+
+	cfout `varlist' using gen2, id(id) saving(diff, replace) `options'
+	ret add
+	preserve
+	u diff, clear
+	conf `numeric'`string' var Master Using
+end
+test47, num: n
+test47, num: n, nonumeric
+test47, str: s
+test47, num: s, nostring
+test47, str: n s
+test47, str: n s, nonumeric
+test47, num: n s, nostring
+test47, num: n s, nonumeric nostring
+test47, str: s_alldiff
+test47, num: s_alldiff, dropdiff
+test47, str: n s_alldiff
+test47, num: n s_alldiff, dropdiff
+assert "`r(alldiff)'" == "s_alldiff"
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

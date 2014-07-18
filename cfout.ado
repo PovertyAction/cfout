@@ -632,6 +632,11 @@ pr save_diffs, rclass
 	restore
 	drop `id'
 
+	if "`cfvars'" != "" {
+		ds `cfvars', has(t string)
+		loc strvars `r(varlist)'
+	}
+
 	#d ;
 	mata: load_diffs(
 		/* variable lists */
@@ -645,6 +650,11 @@ pr save_diffs, rclass
 
 	tempvar order
 	gen double `order' = _n
+
+	if "`dropdiff'" != "" ///
+		loc strvars : list strvars - alldiff
+	if "`strvars'" == "" ///
+		qui destring `masterval' `usingval', replace
 
 	* Merge back in the ID variables.
 	sort `ididx'
