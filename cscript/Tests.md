@@ -236,4 +236,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Old syntax</td>
 	<td>Specify version 1 syntax; option <code>dropdiff</code> is implied.</td>
 </tr>
+<tr>
+	<td>46</td>
+	<td>Basic</td>
+	<td>Basic tests of options <code>nostring</code> and <code>nonumeric</code></td>
+</tr>
 </table>

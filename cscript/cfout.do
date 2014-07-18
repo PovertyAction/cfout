@@ -207,6 +207,62 @@ u diff, clear
 assert _N == 1000
 cd ..
 
+* Test 46
+cd 46
+u gen1, clear
+#d ;
+loc tests "
+	""						6	3	"n s"
+	nostring				3	1	n
+	nonumeric				3	2	s
+	"nostring nonumeric"	0	0	""
+";
+#d cr
+while `:list sizeof tests' {
+	gettoken opts		tests : tests
+	gettoken N			tests : tests
+	gettoken discrep	tests : tests
+	gettoken varlist	tests : tests
+
+	u gen1, clear
+	foreach saving in "" "saving(diff, replace)" {
+		cfout n s using gen2, id(id) `opts' `saving'
+		assert r(N) == `N'
+		assert r(discrep) == `discrep'
+		assert "`r(varlist)'" == "`varlist'"
+	}
+	u diff, clear
+	assert _N == `discrep'
+}
+* -nostring- for all string variables
+u gen1, clear
+tostring _all, replace
+unab all : _all
+conf str var `all'
+preserve
+u gen2, clear
+tostring _all, replace
+conf str var `all'
+sa gen2_str
+restore
+cfout using gen2_str, id(id) nostring
+assert r(N) == 0
+assert r(discrep) == 0
+* -nonumeric- for all numeric variables
+u gen1, clear
+destring, replace
+conf numeric var `all'
+preserve
+u gen2, clear
+destring, replace
+conf numeric var `all'
+sa gen2_num
+restore
+cfout using gen2_num, id(id) nonumeric
+assert r(N) == 0
+assert r(discrep) == 0
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

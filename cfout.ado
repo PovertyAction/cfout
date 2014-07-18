@@ -14,7 +14,7 @@ pr cfout, rclass
 		/* string comparison */
 		[Lower Upper NOPunct]
 		/* other */
-		[SAving(str asis) NOString DROPDiff NOMATch]
+		[SAving(str asis) NOString NONUMeric DROPDiff NOMATch]
 	*/
 
 	cap cfout_syntax 2 `0'
@@ -172,6 +172,9 @@ pr cfout, rclass
 	* Implement -nostring-.
 	if "`nostring'" != "" ///
 		loc cfvars `numvars'
+	* Implement -nonumeric-.
+	if "`nonumeric'" != "" ///
+		loc cfvars : list cfvars - numvars
 
 	keep `id' `cfvars'
 	sort `id'
@@ -447,7 +450,7 @@ pr cfout_syntax
 			/* string comparison */
 			[Lower Upper NOPunct]
 			/* other */
-			[SAving(str asis) NOString DROPDiff NOMATch]
+			[SAving(str asis) NOString NONUMeric DROPDiff NOMATch]
 		;
 		#d cr
 	}
@@ -608,7 +611,7 @@ pr save_diffs, rclass
 	#d ;
 	syntax,
 		/* main */
-		id(varlist) cfvars(varlist) cftemps(varlist)
+		id(varlist) [cfvars(varlist) cftemps(varlist)]
 		/* -saving()- arguments */
 		fn(str) [variable(name) masterval(name) usingval(name) csv replace]
 		/* other */
