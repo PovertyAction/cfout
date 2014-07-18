@@ -251,4 +251,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>The master and using data both have dataset labels and <code>_dta</code> characteristics; the differences dataset should not.</td>
 </tr>
+<tr>
+	<td>49</td>
+	<td>Basic</td>
+	<td>If options <code>saving()</code> and <code>nopreserve</code> are both specified, the differences dataset is left in memory.</td>
+</tr>
 </table>

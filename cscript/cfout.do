@@ -318,6 +318,15 @@ assert "`:data lab'" == ""
 assert "`:char _dta[]'" == ""
 cd ..
 
+* Test 49
+cd 49
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+compdta 1
+cfout gender using 2, id(id) saving(diff, replace) nopre
+compdta diff
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

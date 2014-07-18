@@ -75,7 +75,8 @@ pr cfout, rclass
 			sprintf("%f:%s", strlen(`varlab'), `varlab'))
 	}
 
-	preserve
+	if "`nopreserve'" == "" ///
+		preserve
 
 	keep `id' `cfvars'
 	sort `id'
@@ -450,7 +451,7 @@ pr cfout_syntax
 			/* string comparison */
 			[Lower Upper NOPunct]
 			/* other */
-			[SAving(str asis) NOString NONUMeric DROPDiff NOMATch]
+			[SAving(str asis) NOString NONUMeric DROPDiff NOMATch NOPreserve]
 		;
 		#d cr
 	}
