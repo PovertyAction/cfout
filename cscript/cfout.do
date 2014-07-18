@@ -181,11 +181,30 @@ cd ..
 * Test 26
 cd 26
 u gen1, clear
-cfout one x using gen2, id(id)
-assert r(N) == 1000
-assert r(discrep) == 0
-assert "`r(varlist)'" == "one"
-assert "`r(alldiff)'" == "x"
+foreach saving in "" saving(diff) {
+	cfout one x using gen2, id(id) dropdiff `saving'
+	assert r(N) == 1000
+	assert r(discrep) == 0
+	assert "`r(varlist)'" == "one"
+	assert "`r(alldiff)'" == "x"
+}
+u diff, clear
+assert !_N
+cd ..
+
+* Test 44
+cd 26
+cap erase diff.dta
+u gen1, clear
+foreach saving in "" saving(diff) {
+	cfout one x using gen2, id(id) `saving'
+	assert r(N) == 2000
+	assert r(discrep) == 1000
+	assert "`r(varlist)'" == "one x"
+	assert "`r(alldiff)'" == "x"
+}
+u diff, clear
+assert _N == 1000
 cd ..
 
 
@@ -630,7 +649,7 @@ cd ..
 
 
 /* -------------------------------------------------------------------------- */
-					/* deprecated options	*/
+					/* old syntax			*/
 
 * Test 2
 cd 2
@@ -671,6 +690,18 @@ cd 5
 u firstEntry, clear
 cfout region-no_good_at_all using secondEntry, id(uniqueid) replace
 conf f "discrepancy report.csv"
+cd ..
+
+* Test 45
+cd 26
+u gen1, clear
+cfout one x using gen2, id(id) replace
+assert r(N) == 1000
+assert r(discrep) == 0
+assert "`r(varlist)'" == "one"
+assert "`r(alldiff)'" == "x"
+insheet using "discrepancy report.csv", c n case clear
+assert !_N
 cd ..
 
 

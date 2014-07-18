@@ -14,7 +14,7 @@ pr cfout, rclass
 		/* string comparison */
 		[Lower Upper NOPunct]
 		/* other */
-		[SAving(str asis) NOString NOMATch]
+		[SAving(str asis) NOString DROPDiff NOMATch]
 	*/
 
 	cap cfout_syntax 2 `0'
@@ -245,23 +245,27 @@ pr cfout, rclass
 	}
 
 	if !`:length loc saving' {
-		mata: st_local("discrep", ///
-			strofreal(ndiffs("cfvars", "cftemps", "alldiff"), "%24.0g"))
+		mata: st_local("discrep", strofreal(ndiffs("cfvars", "cftemps", ///
+			"`dropdiff'" != "", "alldiff"), "%24.0g"))
 	}
 	else {
-		save_diffs, id(`id') cfvars(`cfvars') cftemps(`cftemps') `saving_args'
+		save_diffs, id(`id') cfvars(`cfvars') cftemps(`cftemps') ///
+			`saving_args' `dropdiff'
 		loc alldiff `r(alldiff)'
 		loc discrep = _N
 	}
 
 	* Variables different on every observation
-	loc cfvars : list cfvars - alldiff
 	if "`alldiff'" != "" {
 		p
-		di "note: the following variables differ on every observation and"
-		di "will not be compared:"
+		di "note: the following variables differ on every observation" _c
+		if "`dropdiff'" != "" ///
+			di " and will not be compared" _c
+		di ":"
 		di as res "`alldiff'"
 	}
+	if "`dropdiff'" != "" ///
+		loc cfvars : list cfvars - alldiff
 	* Return stored result.
 	ret loc alldiff `alldiff'
 
@@ -274,8 +278,8 @@ pr cfout, rclass
 	display_summary `return(discrep)' `return(N)'
 
 	* Display warning messages.
-	if `warnid' | ///
-		"`return(varonlym)'`return(difftype)'`return(alldiff)'" != "" {
+	if `warnid' | "`return(varonlym)'`return(difftype)'" != "" | ///
+		"`dropdiff'" != "" & "`return(alldiff)'" != "" {
 		di as txt "note: not all variables specified were compared."
 	}
 	if "`nomatch'" == "" {
@@ -416,6 +420,9 @@ pr cfout_syntax
 		;
 		#d cr
 
+		di as txt "note: you are using old {cmd:cfout} syntax; " ///
+			"see {helpb cfout} for new syntax."
+
 		if `"`name'"' == "" ///
 			loc name discrepancy report.csv
 		else ///
@@ -428,6 +435,9 @@ pr cfout_syntax
 			warn_deprecated format()
 		if "`altid'" != "" ///
 			warn_deprecated altid()
+
+		di as txt "note: option {cmd:dropdiff} is implied."
+		loc dropdiff dropdiff
 	}
 	else if `version' == 2 {
 		#d ;
@@ -437,7 +447,7 @@ pr cfout_syntax
 			/* string comparison */
 			[Lower Upper NOPunct]
 			/* other */
-			[SAving(str asis) NOString NOMATch]
+			[SAving(str asis) NOString DROPDiff NOMATch]
 		;
 		#d cr
 	}
@@ -601,6 +611,8 @@ pr save_diffs, rclass
 		id(varlist) cfvars(varlist) cftemps(varlist)
 		/* -saving()- arguments */
 		fn(str) [variable(name) masterval(name) usingval(name) csv replace]
+		/* other */
+		[dropdiff]
 	;
 	#d cr
 
@@ -624,7 +636,7 @@ pr save_diffs, rclass
 		/* new variable names */
 		"variable", "masterval", "usingval",
 		/* other */
-		"alldiff"
+		"`dropdiff'" != "", "alldiff"
 	);
 	#d cr
 
@@ -809,7 +821,8 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 					/* create differences dataset	*/
 
 // "ndiffs" for "number of differences"
-`RS' ndiffs(`lclname' _cfvars, `lclname' _cftemps, `lclname' _alldiff)
+`RS' ndiffs(`lclname' _cfvars, `lclname' _cftemps,
+	`boolean' _dropdiff, `lclname' _alldiff)
 {
 	`RS' vardiffs, ndiffs, nvars, i
 	`SR' cfvars, cftemps, alldiff
@@ -833,12 +846,13 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 		}
 		vardiffs = sum(master :!= usingval)
 
-		if (vardiffs != st_nobs())
-			ndiffs = ndiffs + vardiffs
-		else {
+		if (vardiffs == st_nobs()) {
 			pragma unset alldiff
 			alldiff = alldiff, cfvars[i]
 		}
+
+		if (!(_dropdiff & vardiffs == st_nobs()))
+			ndiffs = ndiffs + vardiffs
 	}
 
 	st_local(_alldiff, invtokens(alldiff))
@@ -852,7 +866,7 @@ void load_diffs(
 	/* new variable names */
 	`lclname' _variable, `lclname' _masterval, `lclname' _usingval,
 	/* other */
-	`lclname' _alldiff)
+	`boolean' _dropdiff, `lclname' _alldiff)
 {
 	// "n" prefix for "number of": "ncomps" for "number of comparisons."
 	`RS' firstrow, lastrow, nvars, ncomps, ndiffs, i
@@ -882,7 +896,7 @@ void load_diffs(
 	cftemps = tokens(st_local(_cftemps))
 	nvars = length(cfvars)
 	assert(nvars == length(cftemps))
-	ncomps = ndiffs(_cfvars, _cftemps, _alldiff)
+	ncomps = ndiffs(_cfvars, _cftemps, _dropdiff, _alldiff)
 
 	// Variables of the differences dataset
 	id_diff = J(ncomps, 1, .)
@@ -899,7 +913,7 @@ void load_diffs(
 
 		diff = mu[,1] :!= mu[,2]
 		ndiffs = sum(diff)
-		if (ndiffs != st_nobs()) {
+		if (!(_dropdiff & ndiffs == st_nobs())) {
 			select = diff
 			ncomps = ndiffs
 

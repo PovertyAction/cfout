@@ -18,22 +18,22 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 </tr>
 <tr>
 	<td>2</td>
-	<td>Deprecated options</td>
+	<td>Old syntax</td>
 	<td>Specify option <code>altid()</code>.</td>
 </tr>
 <tr>
 	<td>3</td>
-	<td>Deprecated options</td>
+	<td>Old syntax</td>
 	<td>Specify option <code>format()</code>.</td>
 </tr>
 <tr>
 	<td>4</td>
-	<td>Deprecated options</td>
+	<td>Old syntax</td>
 	<td>Specify option <code>name()</code>.</td>
 </tr>
 <tr>
 	<td>5</td>
-	<td>Deprecated options</td>
+	<td>Old syntax</td>
 	<td>Specify option <code>replace</code>.</td>
 </tr>
 <tr>
@@ -139,7 +139,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 <tr>
 	<td>26</td>
 	<td>Basic</td>
-	<td>Specify a variable that differs on every observation.</td>
+	<td>Specify a variable that differs on every observation; specify option <code>dropdiff</code>.</td>
 </tr>
 <tr>
 	<td>27</td>
@@ -225,5 +225,15 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>43</td>
 	<td><code>saving()</code></td>
 	<td>Value labels are dropped and numeric display formats are set to <code>%24.0g</code>.</td>
+</tr>
+<tr>
+	<td>44</td>
+	<td>Basic</td>
+	<td>Specify a variable that differs on every observation; do not specify option <code>dropdiff</code>.</td>
+</tr>
+<tr>
+	<td>45</td>
+	<td>Old syntax</td>
+	<td>Specify version 1 syntax; option <code>dropdiff</code> is implied.</td>
 </tr>
 </table>
