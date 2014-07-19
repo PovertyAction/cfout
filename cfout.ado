@@ -245,7 +245,7 @@ pr cfout, rclass
 		loc temp : word `i' of `cftemps'
 		cap conf str var `var'
 		if !_rc ///
-			cfsetstr `var' `temp', `lower' `upper' `nopunct'
+			qui cfsetstr `var' `temp', `lower' `upper' `nopunct'
 	}
 
 	if !`:length loc saving' {
@@ -581,29 +581,21 @@ end
 					/* string comparison	*/
 
 pr cfsetstr
-	syntax varlist, [NOPUNCT upper lower]
+	syntax varlist(min=2 max=2), [lower upper NOPUNCT]
 
-	foreach X of varlist `varlist' {
-		if "`upper'" != "" {
-			replace `X' = upper(`X')
+	foreach var of loc varlist {
+		if "`lower'`upper'" != "" {
+			qui replace `var' = `lower'`upper'(`var')
 		}
-		if "`lower'" != "" {
-			replace `X' = lower(`X')
-		}
+
 		if "`nopunct'" != "" {
-			replace `X' = subinstr(`X', ".", " ", .)
-			replace `X' = subinstr(`X', ",", " ", .)
-			replace `X' = subinstr(`X', "!", "", .)
-			replace `X' = subinstr(`X', "?", "", .)
-			replace `X' = subinstr(`X', "'", "", .)
-			replace `X' = subinstr(`X', "--", " ", .)
-			replace `X' = subinstr(`X', "/", " ", .)
-			replace `X' = subinstr(`X', ";", " ", .)
-			replace `X' = subinstr(`X', ":", " ", .)
-			replace `X' = subinstr(`X', "(", " ", .)
-			replace `X' = subinstr(`X', ")", " ", .)
-			replace `X' = trim(`X')
-			replace `X' = itrim(`X')
+			foreach c in ! ? "'" {
+				qui replace `var' = subinstr(`var', "`c'", "", .)
+			}
+			foreach c in . , -- / ; : ( ) {
+				qui replace `var' = subinstr(`var', "`c'", " ", .)
+			}
+			qui replace `var' = itrim(strtrim(`var'))
 		}
 	}
 end
