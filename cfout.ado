@@ -105,7 +105,7 @@ pr cfout, rclass
 		if _rc {
 			* cscript 20
 			di as err "variable `var' not found in using data" _n ///
-				"(error in option {bf:x()})"
+				"(error in option {bf:id()})"
 			ex 111
 		}
 	}
