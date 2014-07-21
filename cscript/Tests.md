@@ -94,7 +94,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 <tr>
 	<td>17</td>
 	<td>String comparison</td>
-	<td>Basic tests of options <code>lower</code>, <code>upper</code>, and <code>nopunct</code>.</td>
+	<td>Basic tests of options <code>lower</code>, <code>upper</code>, <code>nopunct</code>, and <code>strcomp()</code>.</td>
 </tr>
 <tr>
 	<td>18</td>
@@ -255,5 +255,20 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>49</td>
 	<td>Basic</td>
 	<td>If options <code>saving()</code> and <code>nopreserve</code> are both specified, the differences dataset is left in memory.</td>
+</tr>
+<tr>
+	<td>50</td>
+	<td>User mistakes</td>
+	<td>Specify a command to option <code>strcomp()</code> that is not a name alone or a name plus options.</td>
+</tr>
+<tr>
+	<td>51</td>
+	<td>User mistakes</td>
+	<td>Specify a nonexistent command to option <code>strcomp()</code>.</td>
+</tr>
+<tr>
+	<td>52</td>
+	<td>User mistakes</td>
+	<td>Specify a command to option <code>strcomp()</code> that results in an error.</td>
 </tr>
 </table>

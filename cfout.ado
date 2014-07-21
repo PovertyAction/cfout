@@ -41,6 +41,10 @@ pr cfout, rclass
 		ex 198
 	}
 
+	* Check -strcomp()-.
+	if `:length loc strcomp' ///
+		parse_cmd_opt strcomp, syntax(, *): `strcomp'
+
 	* Parse -saving()-.
 	if `:length loc saving' {
 		parse_saving, id(`id'): `saving'
@@ -244,8 +248,10 @@ pr cfout, rclass
 		loc var  : word `i' of `cfvars'
 		loc temp : word `i' of `cftemps'
 		cap conf str var `var'
-		if !_rc ///
-			cfsetstr `var' `temp', `lower' `upper' `nopunct'
+		if !_rc {
+			qui cfsetstr `var' `temp', ///
+				`lower' `upper' `nopunct' strcomp(`strcomp')
+		}
 	}
 
 	if !`:length loc saving' {
@@ -298,34 +304,6 @@ pr cfout, rclass
 			di "note: not all observations were compared;"
 			di "there are observations only in the using data."
 			di "{p_end}"
-		}
-	}
-end
-
-pr cfsetstr
-	syntax varlist, [NOPUNCT upper lower]
-
-	foreach X of varlist `varlist' {
-		if "`upper'" != "" {
-			replace `X' = upper(`X')
-		}
-		if "`lower'" != "" {
-			replace `X' = lower(`X')
-		}
-		if "`nopunct'" != "" {
-			replace `X' = subinstr(`X', ".", " ", .)
-			replace `X' = subinstr(`X', ",", " ", .)
-			replace `X' = subinstr(`X', "!", "", .)
-			replace `X' = subinstr(`X', "?", "", .)
-			replace `X' = subinstr(`X', "'", "", .)
-			replace `X' = subinstr(`X', "--", " ", .)
-			replace `X' = subinstr(`X', "/", " ", .)
-			replace `X' = subinstr(`X', ";", " ", .)
-			replace `X' = subinstr(`X', ":", " ", .)
-			replace `X' = subinstr(`X', "(", " ", .)
-			replace `X' = subinstr(`X', ")", " ", .)
-			replace `X' = trim(`X')
-			replace `X' = itrim(`X')
 		}
 	}
 end
@@ -449,7 +427,7 @@ pr cfout_syntax
 			/* main */
 			id(varlist)
 			/* string comparison */
-			[Lower Upper NOPunct]
+			[Lower Upper NOPunct STRComp(str asis)]
 			/* other */
 			[SAving(str asis) NOString NONUMeric DROPDiff NOMATch NOPreserve]
 		;
@@ -488,6 +466,23 @@ pr check_id
 			_nostrl error : `r(varlist)'
 			/*NOTREACHED*/
 		}
+	}
+end
+
+* Syntax: parse_cmd_opt option_name, syntax(): command
+* Parse an option named option_name that takes a command as its argument,
+* checking that it matches the syntax specified to option -syntax()-.
+pr parse_cmd_opt
+	_on_colon_parse `0'
+	loc 0			"`s(before)'"
+	loc command		"`s(after)'"
+	syntax name(name=opt), [syntax(str)]
+
+	gettoken cmdname 0 : command, p(", ")
+	cap noi syntax `syntax'
+	if _rc {
+		di as err "(error in option {bf:`opt'()})"
+		ex `=_rc'
 	}
 end
 
@@ -602,6 +597,42 @@ pr display_summary
 end
 
 					/* display programs		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* string comparison	*/
+
+pr cfsetstr
+	syntax varlist(min=2 max=2), [lower upper NOPUNCT strcomp(str asis)]
+
+	foreach var of loc varlist {
+		if "`lower'`upper'" != "" {
+			qui replace `var' = `lower'`upper'(`var')
+		}
+
+		if "`nopunct'" != "" {
+			foreach c in ! ? "'" {
+				qui replace `var' = subinstr(`var', "`c'", "", .)
+			}
+			foreach c in . , -- / ; : ( ) {
+				qui replace `var' = subinstr(`var', "`c'", " ", .)
+			}
+			qui replace `var' = itrim(strtrim(`var'))
+		}
+	}
+
+	if `:length loc strcomp' {
+		gettoken cmd opts : strcomp, p(", ")
+		cap noi `cmd' `varlist'`opts'
+		if _rc {
+			di as err "(error in option {bf:strcomp()})"
+			ex `=_rc'
+		}
+	}
+end
+
+					/* string comparison	*/
 /* -------------------------------------------------------------------------- */
 
 

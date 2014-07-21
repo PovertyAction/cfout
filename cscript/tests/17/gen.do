@@ -3,18 +3,19 @@ vers 10.1
 #d ;
 loc s
 	/* lower/upper */
-	x	X
+	x		X
 	/* lower/upper */
-	xY	Xy
+	xY		Xy
 	/* nopunct */
-	x	x.
+	x		x.
 	/* lower/upper + nopunct */
-	x	X.
+	x		X.
 	/* simply different */
-	x	y
+	x		y
+	WIZARD	pineapple
 	/* simply the same */
-	x	x
-	y	y
+	x		x
+	y		y
 ;
 #d cr
 
