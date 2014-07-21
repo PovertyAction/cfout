@@ -392,44 +392,102 @@ cd ..
 /* -------------------------------------------------------------------------- */
 					/* string comparison	*/
 
+pr sc_lower
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	replace `var1' = strlower(`var1')
+	replace `var2' = strlower(`var2')
+end
+
+pr sc_same
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	replace `var1' = `var2'
+end
+
+pr sc_diff
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	assert strlen(`var1') < c(maxstrvarlen)
+	replace `var2' = `var1' + "x"
+end
+
+pr sc_wizard
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	replace `var1' = "pineapple" if `var1' == "wizard"
+end
+
+pr sc_from_to
+	syntax varlist(min=2 max=2), from(str asis) to(str asis)
+	gettoken var1 var2 : varlist
+
+	replace `var1' = `to' if `var1' == `from'
+end
+
 * Test 17
 cd 17
 #d ;
 loc optsN "
-	""					5
-	lower				3
-	upper				3
-	nopunct				4
-	"lower nopunct"		1
-	"upper nopunct"		1
+	""							6
+	lower						4
+	upper						4
+	nopunct						5
+	"lower nopunct"				2
+	"upper nopunct"				2
+	strcomp(sc_lower)			4
+	strcomp(sc_same)			0
+	strcomp(sc_diff)			8
+	strcomp(sc_wizard)			6
+	"lower strcomp(sc_wizard)"	3
+	`"strcomp(sc_from_to, from("wizard") to("pineapple"))"'
+								6
+	`"lower strcomp(sc_from_to, from("wizard") to("pineapple"))"'
+								3
+	`"strcomp(sc_from_to , from("wizard") to("pineapple"))"'
+								6
 ";
 #d cr
 while `:list sizeof optsN' {
-	gettoken opts	optsN : optsN
-	gettoken N		optsN : optsN
+	gettoken opts		optsN : optsN
+	gettoken discrep	optsN : optsN
 
 	u gen1, clear
-	cfout s x using gen2, id(id) `opts' saving(diff_opts, replace)
-	assert r(discrep) == `N'
+	cfout s x using gen2, id(id) `opts' saving(diff, replace)
+	assert r(discrep) == `discrep'
 
 	* Redo the string comparison.
 
-	cfout s x using gen2, id(id) saving(diff_no_opts, replace)
-	u diff_no_opts, clear
+	loc 0 , `opts'
+	syntax, [lower upper NOPUNCT strcomp(str asis)]
 
-	loc lower lower
-	loc upper upper
-	loc nopunct nopunct
 	loc master Master
 	loc using Using
+
+	u diff, clear
+	assert Question == "s"
+
+	u gen1
+	drop x
+	ren s sm
+	merge id using gen2, sort keep(s)
+	assert _merge == 3
+	drop _merge
+	ren s `using'
+	ren sm `master'
+
 	foreach X of var `master' `using' {
-		if `:list lower in opts' ///
+		if "`lower'" != "" ///
 			replace `X' = strlower(`X')
 
-		if `:list upper in opts' ///
+		if "`upper'" != "" ///
 			replace `X' = strupper(`X')
 
-		if `:list nopunct in opts' {
+		if "`nopunct'" != "" {
 			replace `X' = subinstr(`X', ".", " ", .)
 			replace `X' = subinstr(`X', ",", " ", .)
 			replace `X' = subinstr(`X', "!", "", .)
@@ -446,17 +504,22 @@ while `:list sizeof optsN' {
 		}
 	}
 
-	keep if `master' != `using'
-	assert _N == `N'
+	if `:length loc strcomp' {
+		gettoken cmd_name cmd_opts : strcomp, p(", ")
+		`cmd_name' `master' `using'`cmd_opts'
+	}
 
-	cf _all using diff_opts
+	keep if `master' != `using'
+	assert _N == `discrep'
+
+	cf _all using diff
 }
 cd ..
 
 * Test 19
 cd 17
 u gen1, clear
-foreach opt in "" lower upper nopunct {
+foreach opt in "" lower upper nopunct strcomp(sc_lower) {
 	cfout s x using gen2, id(id) `opt' nostring
 	assert r(discrep) == 0
 }
@@ -962,6 +1025,34 @@ if c(stata_version) >= 13 {
 	u gen1, clear
 	rcof "noi cfout gender using `2', id(id1 id2)" == 109
 }
+cd ..
+
+* Test 50
+cd 17
+u gen1, clear
+rcof "noi cfout s using gen2, id(id) strcomp(sc_lower Master Using)" == 101
+pr sc_using
+	syntax varlist(min=2 max=2) using
+end
+tempfile temp
+sa `temp'
+rcof `"noi cfout s using gen2, id(id) strcomp(sc_lower using `temp')"' == 101
+cd ..
+
+* Test 51
+cd 17
+u gen1, clear
+rcof "noi cfout s using gen2, id(id) strcomp(DoesNotExist)" == 199
+cd ..
+
+* Test 52
+cd 17
+pr sc_error
+	di as err "sc_error error"
+	ex 123
+end
+u gen1, clear
+rcof "noi cfout s using gen2, id(id) strcomp(sc_error)" == 123
 cd ..
 
 
