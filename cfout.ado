@@ -255,14 +255,14 @@ pr cfout, rclass
 	}
 
 	if !`:length loc saving' {
-		mata: st_local("discrep", strofreal(ndiffs("cfvars", "cftemps", ///
-			"`dropdiff'" != "", "alldiff"), "%24.0g"))
+		mata: cfout("discrep", "alldiff", ///
+			"cfvars", "cftemps", "`dropdiff'" != "")
 	}
 	else {
 		save_diffs, id(`id') cfvars(`cfvars') cftemps(`cftemps') ///
 			`saving_args' `dropdiff'
+		loc discrep = r(discrep)
 		loc alldiff `r(alldiff)'
-		loc discrep = _N
 	}
 
 	* Variables different on every observation
@@ -670,18 +670,18 @@ pr save_diffs, rclass
 	}
 
 	#d ;
-	mata: load_diffs(
-		/* variable lists */
-		"ididx", "cfvars", "cftemps",
-		/* new variable names */
-		"variable", "masterval", "usingval",
-		/* other */
-		"`dropdiff'" != "", "alldiff"
-	);
+	mata: cfout(
+		/* output */				"discrep", "alldiff",
+		/* comparison variables */	"cfvars", "cftemps",
+		/* other */					"`dropdiff'" != "",
+		/* -id()- */				"ididx",
+		/* new variable names */	"variable", "masterval", "usingval");
 	#d cr
 
 	tempvar order
 	gen double `order' = _n
+
+	ret sca discrep = `discrep'
 
 	if "`dropdiff'" != "" ///
 		loc strvars : list strvars - alldiff
@@ -737,6 +737,9 @@ end
 					/* type definitions, etc.	*/
 
 vers 10.1
+
+* Convert real x to string using -strofreal(x, `RealFormat')-.
+loc RealFormat	""%24.0g""
 
 loc RS	real scalar
 loc RR	real rowvector
@@ -870,91 +873,95 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 
 
 /* -------------------------------------------------------------------------- */
-					/* create differences dataset	*/
+					/* compare datasets		*/
 
-// "ndiffs" for "number of differences"
-`RS' ndiffs(`lclname' _cfvars, `lclname' _cftemps,
-	`boolean' _dropdiff, `lclname' _alldiff)
+void resize_colvector(`TC' v, `RS' n)
 {
-	`RS' vardiffs, ndiffs, nvars, i
-	`SR' cfvars, cftemps, alldiff
-	`TC' master, usingval
+	`RS' ncur
+	`SS' eltype
+	`TS' miss
 
-	ndiffs = 0
-	cfvars  = tokens(st_local(_cfvars))
-	cftemps = tokens(st_local(_cftemps))
-	nvars = length(cfvars)
-	assert(nvars == length(cftemps))
-	for (i = 1; i <= nvars; i++) {
-		pragma unset master
-		pragma unset usingval
-		if (st_isnumvar(cfvars[i])) {
-			st_view(master,   ., cfvars[i])
-			st_view(usingval, ., cftemps[i])
-		}
-		else {
-			st_sviewL(master   = "", ., cfvars[i])
-			st_sviewL(usingval = "", ., cftemps[i])
-		}
-		vardiffs = sum(master :!= usingval)
-
-		if (vardiffs == st_nobs()) {
-			pragma unset alldiff
-			alldiff = alldiff, cfvars[i]
-		}
-
-		if (!(_dropdiff & vardiffs == st_nobs()))
-			ndiffs = ndiffs + vardiffs
+	ncur = length(v)
+	if (n > ncur) {
+		eltype = eltype(v)
+		if (eltype == "real")
+			miss = .
+		else if (eltype == "string")
+			miss = ""
+		else
+			_error("invalid eltype")
+		v = v \ J(n - ncur, 1, miss)
 	}
-
-	st_local(_alldiff, invtokens(alldiff))
-	return(ndiffs)
+	else if (n < ncur)
+		v = v[|1 \ n|]
 }
 
-// Create and load the differences dataset.
-void load_diffs(
-	/* variable lists */
-	`lclname' _id, `lclname' _cfvars, `lclname' _cftemps,
-	/* new variable names */
-	`lclname' _variable, `lclname' _masterval, `lclname' _usingval,
-	/* other */
-	`boolean' _dropdiff, `lclname' _alldiff)
+void resize_diff_dta(`RS' n, `RC' id, `SC' var, `SC' master, `SC' usingval)
 {
+	`RS' nv, i
+	pointer(`TC') rowvector v
+
+	v = &id, &var, &master, &usingval
+	nv = length(v)
+	for (i = 1; i <= nv; i++)
+		resize_colvector(*v[i], n)
+}
+
+// Compare the master and using datasets,
+// optionally creating the differences dataset.
+void cfout(
+	/* output */				`lclname' _discrep, `lclname' _alldiff,
+	/* comparison variables */	`lclname' _cfvars, `lclname' _cftemps,
+	/* other */					`boolean' _dropdiff,
+	/* ---------------------------------------------------------------------- */
+					/* -saving()-			*/
+	/* ---------------------------------------------------------------------- */
+	/* -id()- */				|`lclname' _id,
+	/* new variable names */
+	`lclname' _variable, `lclname' _masterval, `lclname' _usingval)
+{
+	// Constants
+	`RS' N_ARGS, N_ARGS_SAVING
+
 	// "n" prefix for "number of": "ncomps" for "number of comparisons."
-	`RS' firstrow, lastrow, nvars, ncomps, ndiffs, i
+	`RS' firstrow, lastrow, vardiffs, nvars, ndiffs, ncomps, i
 	`RC' id_merge, id_diff, diff, select
 	`SS' id_name
-	`SR' cfvars, cftemps
+	`SR' cfvars, cftemps, alldiff
 	`SC' var, master, usingval
 	`SM' comps
 	// "mu" for "master/using"
 	`TM' mu
+	`boolean' diffdta
 
-	// ID variables
-	id_name = st_local(_id)
-	// id_merge is a view onto the ID variable in the merged dataset.
-	// It must be the first variable in the dataset so that
-	// the view does not need to be updated.
-	stata("order " + id_name)
-	pragma unset id_merge
-	st_view(id_merge, ., id_name)
-	assert(cols(id_merge) == 1)
+	N_ARGS = 5
+	N_ARGS_SAVING = 4
+	assert(anyof((N_ARGS, N_ARGS + N_ARGS_SAVING), args()))
+	diffdta = args() == N_ARGS + N_ARGS_SAVING
 
-	// Determine the number of observations of the differences dataset.
-	// The relatively small time cost of this is justified by
-	// the far greater cost of resizing the vectors in
-	// each iteration of the loop below.
 	cfvars  = tokens(st_local(_cfvars))
 	cftemps = tokens(st_local(_cftemps))
 	nvars = length(cfvars)
 	assert(nvars == length(cftemps))
-	ncomps = ndiffs(_cfvars, _cftemps, _dropdiff, _alldiff)
 
 	// Variables of the differences dataset
-	id_diff = J(ncomps, 1, .)
-	var = master = usingval = J(ncomps, 1, "")
+	if (diffdta) {
+		// id_merge is a view onto the ID variable in the merged dataset.
+		// It must be the first variable in the dataset so that
+		// the view does not need to be updated.
+		id_name = st_local(_id)
+		stata("order " + id_name)
+		pragma unset id_merge
+		st_view(id_merge, ., id_name)
+		assert(cols(id_merge) == 1)
 
+		id_diff = J(0, 1, .)
+		var = master = usingval = J(0, 1, "")
+	}
+
+	ndiffs = 0
 	firstrow = 1
+	lastrow = 0
 	for (i = 1; i <= nvars; i++) {
 		// Make mu a view onto cfvars[i] and cftemps[i].
 		pragma unset mu
@@ -964,25 +971,39 @@ void load_diffs(
 			st_sviewL(mu = "", ., (cfvars[i], cftemps[i]))
 
 		diff = mu[,1] :!= mu[,2]
-		ndiffs = sum(diff)
-		if (!(_dropdiff & ndiffs == st_nobs())) {
-			select = diff
-			ncomps = ndiffs
+		vardiffs = sum(diff)
 
-			if (ncomps) {
-				// Store the master and using values in comps.
-				if (st_isstrvar(cfvars[i]))
-					comps = select(mu, select)
-				else
-					comps = strofreal(select(mu, select), "%24.0g")
+		if (vardiffs == st_nobs()) {
+			pragma unset alldiff
+			alldiff = alldiff, cfvars[i]
+		}
 
-				// Add observations to the differences dataset.
-				lastrow = firstrow + ncomps - 1
-				id_diff[|firstrow \ lastrow|] = select(id_merge, select)
-				var[|firstrow \ lastrow|] = J(ncomps, 1, cfvars[i])
-				master[|firstrow \ lastrow|] = comps[,1]
-				usingval[|firstrow \ lastrow|] = comps[,2]
-				firstrow = firstrow + ncomps
+		if (!(_dropdiff & vardiffs == st_nobs())) {
+			ndiffs = ndiffs + vardiffs
+
+			if (diffdta) {
+				select = diff
+				ncomps = vardiffs
+
+				if (ncomps) {
+					// Store the master and using values in comps.
+					if (st_isstrvar(cfvars[i]))
+						comps = select(mu, select)
+					else
+						comps = strofreal(select(mu, select), `RealFormat')
+
+					// Add observations to the differences dataset.
+					lastrow = firstrow + ncomps - 1
+					if (lastrow > length(id_diff)) {
+						resize_diff_dta(2 * lastrow,
+							id_diff, var, master, usingval)
+					}
+					id_diff[|firstrow \ lastrow|] = select(id_merge, select)
+					var[|firstrow \ lastrow|] = J(ncomps, 1, cfvars[i])
+					master[|firstrow \ lastrow|] = comps[,1]
+					usingval[|firstrow \ lastrow|] = comps[,2]
+					firstrow = firstrow + ncomps
+				}
 			}
 		}
 
@@ -991,14 +1012,21 @@ void load_diffs(
 	}
 
 	// Load the differences dataset.
-	st_dropvar(.)
-	st_store_new(id_diff, id_name)
-	st_store_new(var, st_local(_variable), "Variable name")
-	st_store_new(master, st_local(_masterval), "Master value")
-	st_store_new(usingval, st_local(_usingval), "Using value")
+	if (diffdta) {
+		resize_diff_dta(lastrow, id_diff, var, master, usingval)
+
+		st_dropvar(.)
+		st_store_new(id_diff, id_name)
+		st_store_new(var, st_local(_variable), "Variable name")
+		st_store_new(master, st_local(_masterval), "Master value")
+		st_store_new(usingval, st_local(_usingval), "Using value")
+	}
+
+	st_local(_discrep, strofreal(ndiffs, `RealFormat'))
+	st_local(_alldiff, invtokens(alldiff))
 }
 
-					/* create differences dataset	*/
+					/* compare datasets		*/
 /* -------------------------------------------------------------------------- */
 
 end
