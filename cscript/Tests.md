@@ -271,4 +271,19 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>User mistakes</td>
 	<td>Specify a command to option <code>strcomp()</code> that results in an error.</td>
 </tr>
+<tr>
+	<td>53</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboption <code>saving(, all)</code><td>
+</tr>
+<tr>
+	<td>54</td>
+	<td><code>saving()</code></td>
+	<td>Specify options <code>dropdiff</code> and <code>saving(, all)</code>. <code>dropdiff</code> still applies: all-different variables are not counted among the comparison variables and are not included in the differences dataset.</td>
+</tr>
+<tr>
+	<td>55</td>
+	<td>User mistakes</td>
+	<td>Specify both suboptions <code>saving(, all)</code> and <code>saving(, all())</code>.</td>
+</tr>
 </table>
