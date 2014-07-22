@@ -664,11 +664,6 @@ pr save_diffs, rclass
 	restore
 	drop `id'
 
-	if "`cfvars'" != "" {
-		ds `cfvars', has(t string)
-		loc strvars `r(varlist)'
-	}
-
 	#d ;
 	mata: cfout(
 		/* output */				"discrep", "alldiff",
@@ -682,11 +677,6 @@ pr save_diffs, rclass
 	gen double `order' = _n
 
 	ret sca discrep = `discrep'
-
-	if "`dropdiff'" != "" ///
-		loc strvars : list strvars - alldiff
-	if "`strvars'" == "" ///
-		qui destring `masterval' `usingval', replace
 
 	* Merge back in the ID variables.
 	sort `ididx'
@@ -896,7 +886,7 @@ void resize_colvector(`TC' v, `RS' n)
 		v = v[|1 \ n|]
 }
 
-void resize_diff_dta(`RS' n, `RC' id, `SC' var, `SC' master, `SC' usingval)
+void resize_diff_dta(`RS' n, `RC' id, `SC' var, `TC' master, `TC' usingval)
 {
 	`RS' nv, i
 	pointer(`TC') rowvector v
@@ -927,11 +917,11 @@ void cfout(
 	`RS' firstrow, lastrow, vardiffs, nvars, ndiffs, ncomps, i
 	`RC' id_merge, id_diff, diff, select
 	`SS' id_name
-	`SR' cfvars, cftemps, alldiff
-	`SC' var, master, usingval
-	`SM' comps
+	`SR' cfvars, cftemps, strvars, alldiff
+	`SC' var
+	`TC' master, usingval
 	// "mu" for "master/using"
-	`TM' mu
+	`TM' mu, comps
 	`boolean' diffdta
 
 	N_ARGS = 5
@@ -955,8 +945,16 @@ void cfout(
 		st_view(id_merge, ., id_name)
 		assert(cols(id_merge) == 1)
 
+		for (i = 1; i <= nvars; i++) {
+			if (st_isstrvar(cfvars[i])) {
+				pragma unset strvars
+				strvars = strvars, cfvars[i]
+			}
+		}
+
 		id_diff = J(0, 1, .)
-		var = master = usingval = J(0, 1, "")
+		var = J(0, 1, "")
+		master = usingval = J(0, 1, (length(strvars) ? "" : .))
 	}
 
 	ndiffs = 0
@@ -976,6 +974,19 @@ void cfout(
 		if (vardiffs == st_nobs()) {
 			pragma unset alldiff
 			alldiff = alldiff, cfvars[i]
+
+			if (_dropdiff & diffdta) {
+				strvars = select(strvars, strvars :!= cfvars[i])
+				if (!length(strvars)) {
+					// Convert master usingval to real.
+					if (!lastrow)
+						master = usingval = J(0, 1, .)
+					else {
+						master   = strtoreal(master)
+						usingval = strtoreal(usingval)
+					}
+				}
+			}
 		}
 
 		if (!(_dropdiff & vardiffs == st_nobs())) {
@@ -987,7 +998,7 @@ void cfout(
 
 				if (ncomps) {
 					// Store the master and using values in comps.
-					if (st_isstrvar(cfvars[i]))
+					if (st_isstrvar(cfvars[i]) | !length(strvars))
 						comps = select(mu, select)
 					else
 						comps = strofreal(select(mu, select), `RealFormat')
