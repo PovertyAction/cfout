@@ -493,7 +493,8 @@ pr parse_saving, sclass
 	loc 0 "`s(after)'"
 
 	cap noi syntax anything(name=fn id=filename equalok everything), ///
-		[Variable(name) MASterval(name) USingval(name) csv replace]
+		[Variable(name) MASterval(name) USingval(name) All(name) All2 ///
+		csv replace]
 	if _rc {
 		error_saving `=_rc'
 		/*NOTREACHED*/
@@ -521,6 +522,13 @@ pr parse_saving, sclass
 		/*NOTREACHED*/
 	}
 
+	* Check -all()- and -all-.
+	if "`all'" != "" & "`all2'" != "" {
+		di as err "suboptions all() and all are mutually exclusive"
+		error_saving 198
+		/*NOTREACHED*/
+	}
+
 	* Default variable names
 	if "`variable'" == "" ///
 		loc variable Question
@@ -528,9 +536,11 @@ pr parse_saving, sclass
 		loc masterval Master
 	if "`usingval'" == "" ///
 		loc usingval Using
+	if "`all2'" != "" ///
+		loc all diff
 
 	* Check variable names.
-	loc opts variable masterval usingval
+	loc opts variable masterval usingval all
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
 		foreach opt2 of loc opts {
@@ -558,7 +568,7 @@ pr parse_saving, sclass
 	* Return arguments for -save_diffs-.
 	loc args fn(`"`fn'"') ///
 		variable(`variable') masterval(`masterval') usingval(`usingval') ///
-		`csv' `replace'
+		all(`all') `csv' `replace'
 	sret loc save_diffs "`args'"
 end
 
@@ -645,7 +655,8 @@ pr save_diffs, rclass
 		/* main */
 		id(varlist) [cfvars(varlist) cftemps(varlist)]
 		/* -saving()- arguments */
-		fn(str) [variable(name) masterval(name) usingval(name) csv replace]
+		fn(str) variable(name) masterval(name) usingval(name) [all(name)]
+		[csv replace]
 		/* other */
 		[dropdiff]
 	;
@@ -670,7 +681,7 @@ pr save_diffs, rclass
 		/* comparison variables */	"cfvars", "cftemps",
 		/* other */					"`dropdiff'" != "",
 		/* -id()- */				"ididx",
-		/* new variable names */	"variable", "masterval", "usingval");
+		/* new variable names */	"variable", "masterval", "usingval", "all");
 	#d cr
 
 	tempvar order
@@ -690,7 +701,7 @@ pr save_diffs, rclass
 	sort `id' `order'
 	drop `order'
 
-	order `id' `variable' `masterval' `usingval'
+	order `id' `variable' `all' `masterval' `usingval'
 
 	if "`csv'" == "" {
 		* Remove the dataset's label and characteristics.
@@ -886,12 +897,10 @@ void resize_colvector(`TC' v, `RS' n)
 		v = v[|1 \ n|]
 }
 
-void resize_diff_dta(`RS' n, `RC' id, `SC' var, `TC' master, `TC' usingval)
+void resize_diff_dta(pointer(`TC') rowvector v, `RS' n)
 {
 	`RS' nv, i
-	pointer(`TC') rowvector v
 
-	v = &id, &var, &master, &usingval
 	nv = length(v)
 	for (i = 1; i <= nv; i++)
 		resize_colvector(*v[i], n)
@@ -908,24 +917,26 @@ void cfout(
 	/* ---------------------------------------------------------------------- */
 	/* -id()- */				|`lclname' _id,
 	/* new variable names */
-	`lclname' _variable, `lclname' _masterval, `lclname' _usingval)
+	`lclname' _variable, `lclname' _masterval, `lclname' _usingval,
+	`lclname' _all)
 {
 	// Constants
 	`RS' N_ARGS, N_ARGS_SAVING
 
 	// "n" prefix for "number of": "ncomps" for "number of comparisons."
 	`RS' firstrow, lastrow, vardiffs, nvars, ndiffs, ncomps, i
-	`RC' id_merge, id_diff, diff, select
-	`SS' id_name
+	`RC' id_merge, id_diff, all, diff, select
+	`SS' id_name, all_name
 	`SR' cfvars, cftemps, strvars, alldiff
 	`SC' var
 	`TC' master, usingval
 	// "mu" for "master/using"
 	`TM' mu, comps
 	`boolean' diffdta
+	pointer(`TC') rowvector cols
 
 	N_ARGS = 5
-	N_ARGS_SAVING = 4
+	N_ARGS_SAVING = 5
 	assert(anyof((N_ARGS, N_ARGS + N_ARGS_SAVING), args()))
 	diffdta = args() == N_ARGS + N_ARGS_SAVING
 
@@ -955,6 +966,13 @@ void cfout(
 		id_diff = J(0, 1, .)
 		var = J(0, 1, "")
 		master = usingval = J(0, 1, (length(strvars) ? "" : .))
+		cols = &id_diff, &var, &master, &usingval
+
+		all_name = st_local(_all)
+		if (all_name != "") {
+			all = J(0, 1, .)
+			cols = cols, &all
+		}
 	}
 
 	ndiffs = 0
@@ -975,7 +993,7 @@ void cfout(
 			pragma unset alldiff
 			alldiff = alldiff, cfvars[i]
 
-			if (_dropdiff & diffdta) {
+			if (_dropdiff & diffdta & anyof(strvars, cfvars[i])) {
 				strvars = select(strvars, strvars :!= cfvars[i])
 				if (!length(strvars)) {
 					// Convert master usingval to real.
@@ -993,8 +1011,15 @@ void cfout(
 			ndiffs = ndiffs + vardiffs
 
 			if (diffdta) {
-				select = diff
-				ncomps = vardiffs
+				// -saving(, all)-
+				if (all_name == "") {
+					select = diff
+					ncomps = vardiffs
+				}
+				else {
+					ncomps = st_nobs()
+					select = J(ncomps, 1, 1)
+				}
 
 				if (ncomps) {
 					// Store the master and using values in comps.
@@ -1005,14 +1030,14 @@ void cfout(
 
 					// Add observations to the differences dataset.
 					lastrow = firstrow + ncomps - 1
-					if (lastrow > length(id_diff)) {
-						resize_diff_dta(2 * lastrow,
-							id_diff, var, master, usingval)
-					}
+					if (lastrow > length(id_diff))
+						resize_diff_dta(cols, 2 * lastrow)
 					id_diff[|firstrow \ lastrow|] = select(id_merge, select)
 					var[|firstrow \ lastrow|] = J(ncomps, 1, cfvars[i])
 					master[|firstrow \ lastrow|] = comps[,1]
 					usingval[|firstrow \ lastrow|] = comps[,2]
+					if (all_name != "")
+						all[|firstrow \ lastrow|] = diff
 					firstrow = firstrow + ncomps
 				}
 			}
@@ -1024,13 +1049,15 @@ void cfout(
 
 	// Load the differences dataset.
 	if (diffdta) {
-		resize_diff_dta(lastrow, id_diff, var, master, usingval)
+		resize_diff_dta(cols, lastrow)
 
 		st_dropvar(.)
 		st_store_new(id_diff, id_name)
 		st_store_new(var, st_local(_variable), "Variable name")
 		st_store_new(master, st_local(_masterval), "Master value")
 		st_store_new(usingval, st_local(_usingval), "Using value")
+		if (all_name != "")
+			st_store_new(all, all_name, "Master and using values differ")
 	}
 
 	st_local(_discrep, strofreal(ndiffs, `RealFormat'))

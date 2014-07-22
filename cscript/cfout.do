@@ -830,6 +830,63 @@ assert(/* using */		line[4] == "2.0000000000000018")
 end
 cd ..
 
+* Test 53
+cd 53
+* Differences only
+u firstEntry, clear
+loc cfout cfout region-no_good_at_all using secondEntry, id(uniqueid)
+`cfout' saving(diff)
+loc N 15000
+loc discrep 44
+assert r(N) == `N'
+assert r(discrep) == `discrep'
+u diff, clear
+assert _N == `discrep'
+* -saving(, all)-
+u firstEntry, clear
+`cfout' saving(diff_all_diff, all)
+assert r(N) == `N'
+assert r(discrep) == `discrep'
+u diff_all_diff, clear
+assert _N == `N'
+assert inlist(diff, 0, 1)
+cou if diff
+assert r(N) == `discrep'
+assert diff == (Master != Using)
+keep if diff
+drop diff
+compdta diff
+* -saving(, all())-
+u firstEntry, clear
+`cfout' saving(diff_all_foo, all(foo))
+assert r(N) == `N'
+assert r(discrep) == `discrep'
+u diff_all_foo, clear
+ren foo diff
+compdta diff_all_diff
+cd ..
+
+* Test 54
+cd 54
+#d ;
+loc optsN "
+	saving(diff)					3
+	"saving(diff) dropdiff"			1
+	"saving(diff, all)"				4
+	"saving(diff, all) dropdiff"	2
+";
+#d cr
+while `:list sizeof optsN' {
+	gettoken opts	optsN : optsN
+	gettoken N		optsN : optsN
+
+	u gen1, clear
+	cap erase diff.dta
+	cfout x y using gen2, id(id) nopre `opts'
+	assert _N == `N'
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/
@@ -991,6 +1048,10 @@ foreach opts in
 	usingval(Question)
 	usingval(Master)
 	"masterval(val) usingval(val)"
+	all(id)
+	all(Question)
+	all(Master)
+	all(Using)
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1053,6 +1114,13 @@ pr sc_error
 end
 u gen1, clear
 rcof "noi cfout s using gen2, id(id) strcomp(sc_error)" == 123
+cd ..
+
+* Test 55
+cd 55
+u 1, clear
+rcof "noi cfout gender using 2, id(id) saving(diff, all all(diff))" == 198
+rcof "noi cfout gender using 2, id(id) saving(diff, all all(foo))" == 198
 cd ..
 
 
