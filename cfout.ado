@@ -897,7 +897,7 @@ void resize_colvector(`TC' v, `RS' n)
 		v = v[|1 \ n|]
 }
 
-void resize_diff_dta(pointer(`TC') rowvector v, `RS' n)
+void diff_dta_resize(pointer(`TC') rowvector v, `RS' n)
 {
 	`RS' nv, i
 
@@ -1031,7 +1031,7 @@ void cfout(
 					// Add observations to the differences dataset.
 					lastrow = firstrow + ncomps - 1
 					if (lastrow > length(id_diff))
-						resize_diff_dta(cols, 2 * lastrow)
+						diff_dta_resize(cols, 2 * lastrow)
 					id_diff[|firstrow \ lastrow|] = select(id_merge, select)
 					var[|firstrow \ lastrow|] = J(ncomps, 1, cfvars[i])
 					master[|firstrow \ lastrow|] = comps[,1]
@@ -1049,7 +1049,7 @@ void cfout(
 
 	// Load the differences dataset.
 	if (diffdta) {
-		resize_diff_dta(cols, lastrow)
+		diff_dta_resize(cols, lastrow)
 
 		st_dropvar(.)
 		st_store_new(id_diff, id_name)
