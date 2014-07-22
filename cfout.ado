@@ -906,6 +906,51 @@ void diff_dta_resize(pointer(`TC') rowvector v, `RS' n)
 		resize_colvector(*v[i], n)
 }
 
+void diff_dta_post(
+	/* differences dataset */
+	`RC' id_merge, `RC' id_diff, `SC' varname, `TC' master, `TC' usingval,
+	`RC' all, `RS' nofill, pointer(`TC') rowvector diffdta,
+	/* differences to post */
+	`SS' cfvar, `TM' mu, `RC' diff, `boolean' tostring,
+	/* other */		`boolean' postall)
+{
+	// "n" prefix for "number of": "ncomps" for "number of comparisons."
+	`RS' lastrow, ncomps
+	`RC' select
+	`TM' comps
+
+	// -saving(, all)-
+	if (postall) {
+		ncomps = st_nobs()
+		select = J(ncomps, 1, 1)
+	}
+	else {
+		select = diff
+		ncomps = sum(diff)
+	}
+
+	if (!ncomps)
+		return
+
+	// Store the master and using values in comps.
+	if (tostring)
+		comps = strofreal(select(mu, select), `RealFormat')
+	else
+		comps = select(mu, select)
+
+	// Add observations to the dataset.
+	lastrow = nofill + ncomps - 1
+	if (lastrow > length(id_diff))
+		diff_dta_resize(diffdta, 2 * lastrow)
+	id_diff[|nofill \ lastrow|] = select(id_merge, select)
+	varname[|nofill \ lastrow|] = J(ncomps, 1, cfvar)
+	master[|nofill \ lastrow|] = comps[,1]
+	usingval[|nofill \ lastrow|] = comps[,2]
+	if (postall)
+		all[|nofill \ lastrow|] = diff
+	nofill = nofill + ncomps
+}
+
 // Compare the master and using datasets,
 // optionally creating the differences dataset.
 void cfout(
@@ -923,15 +968,14 @@ void cfout(
 	// Constants
 	`RS' N_ARGS, N_ARGS_SAVING
 
-	// "n" prefix for "number of": "ncomps" for "number of comparisons."
-	`RS' firstrow, lastrow, vardiffs, nvars, ndiffs, ncomps, i
-	`RC' id_merge, id_diff, all, diff, select
+	`RS' nofill, vardiffs, nvars, ndiffs, i
+	`RC' id_merge, id_diff, all, diff
 	`SS' id_name, all_name
 	`SR' cfvars, cftemps, strvars, alldiff
 	`SC' var
 	`TC' master, usingval
 	// "mu" for "master/using"
-	`TM' mu, comps
+	`TM' mu
 	`boolean' diffdta
 	pointer(`TC') rowvector cols
 
@@ -945,7 +989,7 @@ void cfout(
 	nvars = length(cfvars)
 	assert(nvars == length(cftemps))
 
-	// Variables of the differences dataset
+	// Prepare the differences dataset.
 	if (diffdta) {
 		// id_merge is a view onto the ID variable in the merged dataset.
 		// It must be the first variable in the dataset so that
@@ -963,21 +1007,20 @@ void cfout(
 			}
 		}
 
+		// Variables of the differences dataset
 		id_diff = J(0, 1, .)
 		var = J(0, 1, "")
 		master = usingval = J(0, 1, (length(strvars) ? "" : .))
 		cols = &id_diff, &var, &master, &usingval
 
-		all_name = st_local(_all)
-		if (all_name != "") {
-			all = J(0, 1, .)
+		all = J(0, 1, .)
+		if ((all_name = st_local(_all)) != "")
 			cols = cols, &all
-		}
 	}
 
 	ndiffs = 0
-	firstrow = 1
-	lastrow = 0
+	// Index of the first unfilled element of the differences dataset vectors
+	nofill = 1
 	for (i = 1; i <= nvars; i++) {
 		// Make mu a view onto cfvars[i] and cftemps[i].
 		pragma unset mu
@@ -997,7 +1040,7 @@ void cfout(
 				strvars = select(strvars, strvars :!= cfvars[i])
 				if (!length(strvars)) {
 					// Convert master usingval to real.
-					if (!lastrow)
+					if (!length(master))
 						master = usingval = J(0, 1, .)
 					else {
 						master   = strtoreal(master)
@@ -1011,35 +1054,13 @@ void cfout(
 			ndiffs = ndiffs + vardiffs
 
 			if (diffdta) {
-				// -saving(, all)-
-				if (all_name == "") {
-					select = diff
-					ncomps = vardiffs
-				}
-				else {
-					ncomps = st_nobs()
-					select = J(ncomps, 1, 1)
-				}
-
-				if (ncomps) {
-					// Store the master and using values in comps.
-					if (st_isstrvar(cfvars[i]) | !length(strvars))
-						comps = select(mu, select)
-					else
-						comps = strofreal(select(mu, select), `RealFormat')
-
-					// Add observations to the differences dataset.
-					lastrow = firstrow + ncomps - 1
-					if (lastrow > length(id_diff))
-						diff_dta_resize(cols, 2 * lastrow)
-					id_diff[|firstrow \ lastrow|] = select(id_merge, select)
-					var[|firstrow \ lastrow|] = J(ncomps, 1, cfvars[i])
-					master[|firstrow \ lastrow|] = comps[,1]
-					usingval[|firstrow \ lastrow|] = comps[,2]
-					if (all_name != "")
-						all[|firstrow \ lastrow|] = diff
-					firstrow = firstrow + ncomps
-				}
+				diff_dta_post(
+					/* differences dataset */
+					id_merge, id_diff, var, master, usingval, all, nofill, cols,
+					/* differences to post */
+					cfvars[i], mu, diff,
+					st_isnumvar(cfvars[i]) & length(strvars),
+					/* other */		all_name != "")
 			}
 		}
 
@@ -1049,7 +1070,7 @@ void cfout(
 
 	// Load the differences dataset.
 	if (diffdta) {
-		diff_dta_resize(cols, lastrow)
+		diff_dta_resize(cols, nofill - 1)
 
 		st_dropvar(.)
 		st_store_new(id_diff, id_name)
