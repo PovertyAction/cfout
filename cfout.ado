@@ -479,6 +479,13 @@ pr parse_cmd_opt
 	syntax name(name=opt), [syntax(str)]
 
 	gettoken cmdname 0 : command, p(", ")
+	cap conf name `cmdname'
+	if `:list sizeof cmdname' > 1 | _rc {
+		di as err "invalid command name"
+		di as err "(error in option {bf:`opt'()})"
+		ex 198
+	}
+
 	cap noi syntax `syntax'
 	if _rc {
 		di as err "(error in option {bf:`opt'()})"

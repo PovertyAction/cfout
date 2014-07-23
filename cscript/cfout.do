@@ -1192,6 +1192,13 @@ rcof "noi cfout gender using 2, id(id) saving(diff, all all(diff))" == 198
 rcof "noi cfout gender using 2, id(id) saving(diff, all all(foo))" == 198
 cd ..
 
+* Test 62
+cd 17
+u gen1, clear
+rcof  "noi cfout s using gen2, id(id) strcomp(B@dN@me)" == 198
+rcof `"noi cfout s using gen2, id(id) strcomp("two names")"' == 198
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* finish up			*/
