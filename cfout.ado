@@ -45,6 +45,10 @@ pr cfout, rclass
 	if `:length loc strcomp' ///
 		parse_cmd_opt strcomp, syntax(, *): `strcomp'
 
+	* Check -numcomp()-.
+	if `:length loc numcomp' ///
+		parse_cmd_opt numcomp, syntax(, *): `numcomp'
+
 	* Parse -saving()-.
 	if `:length loc saving' {
 		parse_saving, id(`id'): `saving'
@@ -254,13 +258,22 @@ pr cfout, rclass
 		}
 	}
 
+	* Parse -numcomp()-.
+	gettoken numcomp_cmd rest : numcomp, p(", ")
+	gettoken comma numcomp_opts : rest, p(", ")
+	if `:length loc comma' ///
+		mata: assert(st_local("comma") == ",")
+	else ///
+		assert !`:length loc numcomp_opts'
+
 	if !`:length loc saving' {
-		mata: cfout("discrep", "alldiff", ///
-			"cfvars", "cftemps", "`dropdiff'" != "")
+		mata: cfout("discrep", "alldiff", "cfvars", "cftemps", ///
+			"numcomp_cmd", "numcomp_opts", "`dropdiff'" != "")
 	}
 	else {
 		save_diffs, id(`id') cfvars(`cfvars') cftemps(`cftemps') ///
-			`saving_args' `dropdiff'
+			`saving_args' ///
+			numcomp_cmd(`numcomp_cmd') numcomp_opts(`numcomp_opts') `dropdiff'
 		loc discrep = r(discrep)
 		loc alldiff `r(alldiff)'
 	}
@@ -429,7 +442,8 @@ pr cfout_syntax
 			/* string comparison */
 			[Lower Upper NOPunct STRComp(str asis)]
 			/* other */
-			[SAving(str asis) NOString NONUMeric DROPDiff NOMATch NOPreserve]
+			[SAving(str asis) NUMComp(str asis) NOString NONUMeric DROPDiff
+			NOMATch NOPreserve]
 		;
 		#d cr
 	}
@@ -665,7 +679,7 @@ pr save_diffs, rclass
 		fn(str) variable(name) masterval(name) usingval(name) [all(name)]
 		[labval csv replace]
 		/* other */
-		[dropdiff]
+		[numcomp_cmd(name) numcomp_opts(str asis) dropdiff]
 	;
 	#d cr
 
@@ -686,7 +700,8 @@ pr save_diffs, rclass
 	mata: cfout(
 		/* output */				"discrep", "alldiff",
 		/* comparison variables */	"cfvars", "cftemps",
-		/* other */					"`dropdiff'" != "",
+		/* other */
+		"numcomp_cmd", "numcomp_opts", "`dropdiff'" != "",
 		/* -id()- */				"ididx",
 		/* new variable names */	"variable", "masterval", "usingval", "all",
 		/* other */					"`labval'" != "");
@@ -983,12 +998,20 @@ void diff_dta_post(
 	nofill = nofill + ncomps
 }
 
+void error_numcomp(`RS' rc, `SS' cmd)
+{
+	errprintf("\ncommand line was:\n    %s\n\n", cmd)
+	errprintf("(error in option {bf:numcomp()})\n")
+	exit(rc)
+}
+
 // Compare the master and using datasets,
 // optionally creating the differences dataset.
 void cfout(
 	/* output */				`lclname' _discrep, `lclname' _alldiff,
 	/* comparison variables */	`lclname' _cfvars, `lclname' _cftemps,
-	/* other */					`boolean' _dropdiff,
+	/* other */
+	`lclname' _numcomp_cmd, `lclname' _numcomp_opts, `boolean' _dropdiff,
 	/* ---------------------------------------------------------------------- */
 					/* -saving()-			*/
 	/* ---------------------------------------------------------------------- */
@@ -1003,7 +1026,7 @@ void cfout(
 
 	`RS' nofill, vardiffs, nvars, ndiffs, i
 	`RC' id_merge, id_diff, all, diff
-	`SS' id_name, all_name
+	`SS' numcomp_cmd, numcomp_opts, id_name, all_name, numcomp_gen, cmd
 	`SR' cfvars, cftemps, strvars, alldiff
 	`SC' var
 	`TC' master, usingval
@@ -1012,7 +1035,7 @@ void cfout(
 	`boolean' diffdta
 	pointer(`TC') rowvector cols
 
-	N_ARGS = 5
+	N_ARGS = 7
 	N_ARGS_SAVING = 6
 	assert(anyof((N_ARGS, N_ARGS + N_ARGS_SAVING), args()))
 	diffdta = args() == N_ARGS + N_ARGS_SAVING
@@ -1021,6 +1044,9 @@ void cfout(
 	cftemps = tokens(st_local(_cftemps))
 	nvars = length(cfvars)
 	assert(nvars == length(cftemps))
+
+	numcomp_cmd  = st_local(_numcomp_cmd)
+	numcomp_opts = st_local(_numcomp_opts)
 
 	// Prepare the differences dataset.
 	if (diffdta) {
@@ -1052,6 +1078,7 @@ void cfout(
 	}
 
 	ndiffs = 0
+	numcomp_gen = st_tempname()
 	// Index of the first unfilled element of the differences dataset vectors
 	nofill = 1
 	for (i = 1; i <= nvars; i++) {
@@ -1062,7 +1089,29 @@ void cfout(
 		else
 			st_sviewL(mu = "", ., (cfvars[i], cftemps[i]))
 
-		diff = mu[,1] :!= mu[,2]
+		if (numcomp_cmd == "")
+			diff = mu[,1] :!= mu[,2]
+		else {
+			// -numcomp()-
+
+			cmd = sprintf("%s %s %s, generate(%s) %s",
+				numcomp_cmd, cfvars[i], cftemps[i], numcomp_gen, numcomp_opts)
+			stata("cap noi " + cmd)
+			if (c("rc")) {
+				error_numcomp(c("rc"), cmd)
+				/*NOTREACHED*/
+			}
+
+			if (st_isstrvar(numcomp_gen)) {
+				errprintf(numcomp_cmd + " created string variable where " +
+					"numeric variable expected\n")
+				error_numcomp(109, cmd)
+				/*NOTREACHED*/
+			}
+
+			st_view(diff, ., numcomp_gen)
+			diff = diff :!= 0
+		}
 		vardiffs = sum(diff)
 
 		if (vardiffs == st_nobs()) {
@@ -1100,6 +1149,8 @@ void cfout(
 
 		// This should require no view updates.
 		st_dropvar((cfvars[i], cftemps[i]))
+		if (numcomp_cmd != "")
+			st_dropvar(numcomp_gen)
 	}
 
 	// Load the differences dataset.
