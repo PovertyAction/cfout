@@ -8,7 +8,7 @@ pr cfout, rclass
 	/*
 	Version 2 syntax:
 
-	syntax [varlist] using/,
+	syntax [varlist] using,
 		/* main */
 		id(varlist)
 		/* string comparison */
@@ -51,7 +51,9 @@ pr cfout, rclass
 
 	* Parse -saving()-.
 	if `:length loc saving' {
-		parse_saving, id(`id'): `saving'
+		parse_saving `using', id(`id'): `saving'
+		loc keepmaster `s(keepmaster)'
+		loc keepusing  `s(keepusing)'
 		loc saving_args "`s(save_diffs)'"
 	}
 
@@ -87,7 +89,7 @@ pr cfout, rclass
 	if "`nopreserve'" == "" ///
 		preserve
 
-	keep `id' `cfvars'
+	keep `id' `cfvars' `keepmaster'
 	sort `id'
 
 	qui lab dir
@@ -96,7 +98,7 @@ pr cfout, rclass
 	tempfile tempmaster
 	qui sa `tempmaster', o
 
-	qui u `"`using'"', clear
+	qui u `using', clear
 
 	* Check -id()-.
 	foreach var of loc id {
@@ -176,8 +178,13 @@ pr cfout, rclass
 	if "`nonumeric'" != "" ///
 		loc cfvars : list cfvars - numvars
 
-	keep `id' `cfvars'
+	keep `id' `cfvars' `keepusing'
 	sort `id'
+
+	if "`keepusing'" != "" {
+		tempfile tempusing
+		qui sa `tempusing'
+	}
 
 	* Use temporary variable names to prevent name conflicts with
 	* `cfvars' in the master data.
@@ -259,8 +266,8 @@ pr cfout, rclass
 			"numcomp_cmd", "numcomp_opts", "`dropdiff'" != "")
 	}
 	else {
-		save_diffs, id(`id') cfvars(`cfvars') cftemps(`cftemps') ///
-			`saving_args' ///
+		save_diffs, tempmaster(`tempmaster') tempusing(`tempusing') id(`id') ///
+			cfvars(`cfvars') cftemps(`cftemps') `saving_args' ///
 			numcomp_cmd(`numcomp_cmd') numcomp_opts(`numcomp_opts') `dropdiff'
 		loc discrep = r(discrep)
 		loc alldiff `r(alldiff)'
@@ -408,7 +415,7 @@ pr cfout_syntax
 
 	if `version' == 1 {
 		#d ;
-		syntax [varlist] using/,
+		syntax [varlist] using,
 			/* main */
 			id(varname)
 			/* string comparison */
@@ -439,7 +446,7 @@ pr cfout_syntax
 	}
 	else if `version' == 2 {
 		#d ;
-		syntax [varlist] using/,
+		syntax [varlist] using,
 			/* main */
 			id(varlist)
 			/* string comparison */
@@ -513,12 +520,14 @@ end
 pr parse_saving, sclass
 	_on_colon_parse `0'
 	loc 0 "`s(before)'"
-	syntax, id(varlist)
+	syntax using, id(varlist)
 	loc 0 "`s(after)'"
 
+	loc temp `using'
 	cap noi syntax anything(name=fn id=filename equalok everything), ///
 		[Variable(name) MASterval(name) USingval(name) All(name) All2 ///
-		LAbval csv replace]
+		KEEPMASter(varlist) KEEPUSing(str asis) LAbval csv replace]
+	loc using `temp'
 	if _rc {
 		error_saving `=_rc'
 		/*NOTREACHED*/
@@ -553,6 +562,28 @@ pr parse_saving, sclass
 		/*NOTREACHED*/
 	}
 
+	* Parse -keepusing()-.
+	if `:length loc keepusing' {
+		preserve
+		qui d `using'
+		if r(N) ///
+			qui u `using' in 1, clear
+		else
+			qui u `using', clear
+		cap noi unab keepusing : `keepusing'
+		if _rc {
+			error_saving `=_rc', sub(keepusing())
+			/*NOTREACHED*/
+		}
+		restore
+	}
+
+	* Parse -keepmaster()- and -keepusing()-.
+	foreach list in keepmaster keepusing {
+		loc `list' : list uniq `list'
+		loc `list' : list `list' - id
+	}
+
 	* Default variable names
 	if "`variable'" == "" ///
 		loc variable Question
@@ -564,7 +595,7 @@ pr parse_saving, sclass
 		loc all diff
 
 	* Check variable names.
-	loc opts variable masterval usingval all
+	loc opts variable masterval usingval all keepmaster keepusing
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
 		foreach opt2 of loc opts {
@@ -589,10 +620,12 @@ pr parse_saving, sclass
 		}
 	}
 
-	* Return arguments for -save_diffs-.
+	sret loc keepmaster `keepmaster'
+	sret loc keepusing  `keepusing'
+	* Arguments for -save_diffs-
 	loc args fn(`"`fn'"') variable(`variable') ///
 		masterval(`masterval') usingval(`usingval') all(`all') ///
-		`labval' `csv' `replace'
+		keepmaster(`keepmaster') keepusing(`keepusing') `labval' `csv' `replace'
 	sret loc save_diffs "`args'"
 end
 
@@ -677,10 +710,11 @@ pr save_diffs, rclass
 	#d ;
 	syntax,
 		/* main */
-		id(varlist) [cfvars(varlist) cftemps(varlist)]
+		tempmaster(str) [tempusing(str)] id(varlist)
+		[cfvars(varlist) cftemps(varlist)]
 		/* -saving()- arguments */
 		fn(str) variable(name) masterval(name) usingval(name) [all(name)]
-		[labval csv replace]
+		[keepmaster(namelist) keepusing(namelist) labval csv replace]
 		/* other */
 		[numcomp_cmd(name) numcomp_opts(str asis) dropdiff]
 	;
@@ -715,19 +749,31 @@ pr save_diffs, rclass
 
 	ret sca discrep = `discrep'
 
+	tempvar merge
+
 	* Merge back in the ID variables.
 	sort `ididx'
-	tempvar merge
 	qui merge `ididx' using `idmap', uniqus _merge(`merge')
 	qui drop if `merge' == 2
 	drop `ididx' `merge'
+
+	* -saving(, keepmaster() keepusing())-
+	foreach data in master using {
+		if "`keep`data''" != "" {
+			sort `id'
+			qui merge `id' using `temp`data'', uniqus ///
+				keep(`keep`data'') _merge(`merge')
+			qui drop if `merge' == 2
+			drop `merge'
+		}
+	}
 
 	* Sort so that within `id', Question remains sorted by
 	* the original variable order.
 	sort `id' `order'
 	drop `order'
 
-	order `id' `variable' `all' `masterval' `usingval'
+	order `id' `keepmaster' `keepusing' `variable' `all' `masterval' `usingval'
 
 	if "`csv'" == "" {
 		* Remove the dataset's label and characteristics.
