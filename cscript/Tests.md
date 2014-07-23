@@ -224,7 +224,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 <tr>
 	<td>43</td>
 	<td><code>saving()</code></td>
-	<td>Value labels are dropped and numeric display formats are set to <code>%24.0g</code>.</td>
+	<td>If suboption <code>saving(, csv)</code> is specified, value labels are dropped and numeric display formats are set to <code>%24.0g</code>.</td>
 </tr>
 <tr>
 	<td>44</td>
@@ -244,7 +244,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 <tr>
 	<td>47</td>
 	<td>Basic</td>
-	<td>The differences dataset variables for the master and using values are string if and only if one of the compared variables is string.</td>
+	<td>The differences dataset variables for the master and using values are string if and only if one of the compared variables is string or suboption <code>saving(, labval)</code> is specified.</td>
 </tr>
 <tr>
 	<td>48</td>
@@ -285,5 +285,35 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>55</td>
 	<td>User mistakes</td>
 	<td>Specify both suboptions <code>saving(, all)</code> and <code>saving(, all())</code>.</td>
+</tr>
+<tr>
+	<td>56</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboption <code>saving(, labval)</code></td>
+</tr>
+<tr>
+	<td>57</td>
+	<td><code>saving()</code></td>
+	<td>When suboption <code>saving(, labval)</code> is specified, a compared variable's value label is blank in the master data, but nonblank in the using. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>58</td>
+	<td><code>saving()</code></td>
+	<td>When suboption <code>saving(, labval)</code> is specified, a compared variable is associated with different value labels in the two datasets. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>59</td>
+	<td><code>saving()</code></td>
+	<td>When suboption <code>saving(, labval)</code> is specified, a compared variable's value label association is the same in the two datasets; but while the value label exists in the using data, it does not in the master. The value label from the using is used.</td>
+</tr>
+<tr>
+	<td>60</td>
+	<td><code>saving()</code></td>
+	<td>When suboption <code>saving(, labval)</code> is specified, a compared variable's value label association is the same in the two datasets; but the value label itself differs. The master data is preferred.</td>
+</tr>
+<tr>
+	<td>61</td>
+	<td><code>saving()</code></td>
+	<td>When suboption <code>saving(, labval)</code> is specified, a compared variable's display format differs in the two datasets. The master data is preferred.</td>
 </tr>
 </table>
