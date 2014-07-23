@@ -316,4 +316,39 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>saving()</code></td>
 	<td>When suboption <code>saving(, labval)</code> is specified, a compared variable's display format differs in the two datasets. The master data is preferred.</td>
 </tr>
+<tr>
+	<td>62</td>
+	<td>User mistakes</td>
+	<td>Specify an invalid command name to option <code>strcomp()</code>.</td>
+</tr>
+<tr>
+	<td>63</td>
+	<td>Basic</td>
+	<td>Basic tests of option <code>numcomp()</code></td>
+</tr>
+<tr>
+	<td>64</td>
+	<td>User mistakes</td>
+	<td>Specify a command to option <code>numcomp()</code> that results in an error.</td>
+</tr>
+<tr>
+	<td>65</td>
+	<td>User mistakes</td>
+	<td>Specify a nonexistent command to option <code>numcomp()</code>.</td>
+</tr>
+<tr>
+	<td>66</td>
+	<td>User mistakes</td>
+	<td>Specify a command to option <code>numcomp()</code> that does not accept option <code>generate()</code>.</td>
+</tr>
+<tr>
+	<td>67</td>
+	<td>User mistakes</td>
+	<td>Specify a command to option <code>numcomp()</code> that does not accept a <code>varlist</code>.</td>
+</tr>
+<tr>
+	<td>68</td>
+	<td>User mistakes</td>
+	<td>Specify a command to option <code>numcomp()</code> that creates a string variable.</td>
+</tr>
 </table>

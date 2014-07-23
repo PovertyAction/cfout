@@ -331,6 +331,78 @@ cfout gender using 2, id(id) saving(diff, replace) nopre
 compdta diff
 cd ..
 
+* Test 63
+cd 63
+pr nc_default
+	syntax varlist(min=2 max=2), Generate(name)
+	gettoken var1 var2 : varlist
+
+	gen `generate' = `var1' != `var2'
+end
+pr nc_same
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 0
+end
+pr nc_diff
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 1
+end
+pr nc_range_tenth
+	syntax varlist(min=2 max=2), Generate(name)
+	gettoken var1 var2 : varlist
+
+	gen `generate' = abs(`var1' - `var2') > .1
+end
+pr nc_range
+	syntax varlist(min=2 max=2), Generate(name) Range(real)
+	gettoken var1 var2 : varlist
+
+	gen `generate' = abs(`var1' - `var2') > `range'
+end
+pr nc_two
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 2
+end
+pr nc_miss
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = .
+end
+#d ;
+loc progdiscrep "
+	""						6
+	nc_default				6
+	nc_same					0
+	nc_diff					7
+	nc_range_tenth			3
+	"nc_range, range(.1)"	3
+	"nc_range, range(.2)"	1
+	nc_default,				6
+	"nc_default ,"			6
+	"nc_range , range(.1)"	3
+";
+#d cr
+while `:list sizeof progdiscrep' {
+	gettoken program	progdiscrep : progdiscrep
+	gettoken discrep	progdiscrep : progdiscrep
+
+	di as res "`program'"
+
+	u gen1, clear
+	cfout x using gen2, id(id) numcomp(`program') ///
+		saving(diff, all replace) nopre
+	assert r(N) == 7
+	assert r(discrep) == `discrep'
+
+	assert inlist(diff, 0, 1)
+	qui cou if diff
+	assert r(N) == `discrep'
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
@@ -1190,6 +1262,63 @@ cd 55
 u 1, clear
 rcof "noi cfout gender using 2, id(id) saving(diff, all all(diff))" == 198
 rcof "noi cfout gender using 2, id(id) saving(diff, all all(foo))" == 198
+cd ..
+
+* Test 62
+cd 17
+u gen1, clear
+rcof  "noi cfout s using gen2, id(id) strcomp(B@dN@me)" == 198
+rcof `"noi cfout s using gen2, id(id) strcomp("two names")"' == 198
+cd ..
+
+* Test 64
+cd 63
+pr nc_error
+	syntax varlist(min=2 max=2), Generate(name)
+
+	di as err "nc_error error"
+	ex 456
+end
+u gen1, clear
+rcof "noi cfout x using gen2, id(id) numcomp(nc_error)" == 456
+cd ..
+
+* Test 65
+cd 63
+u gen1, clear
+rcof "noi cfout x using gen2, id(id) numcomp(DoesNotExist)" == 199
+cd ..
+
+* Test 66
+cd 63
+pr nc_no_generate
+	syntax varlist(min=2 max=2)
+	di "Hello world!"
+end
+u gen1, clear
+rcof "noi cfout x using gen2, id(id) numcomp(nc_no_generate)" == 101
+cd ..
+
+* Test 67
+cd 63
+pr nc_only_generate
+	syntax, Generate(name)
+
+	gen `generate' = 1
+end
+u gen1, clear
+rcof "noi cfout x using gen2, id(id) numcomp(nc_only_generate)" == 101
+cd ..
+
+* Test 68
+cd 63
+pr nc_gen_str
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = "1"
+end
+u gen1, clear
+rcof "noi cfout x using gen2, id(id) numcomp(nc_gen_str)" == 109
 cd ..
 
 
