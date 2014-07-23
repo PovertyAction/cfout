@@ -272,14 +272,14 @@ pr test47, rclass
 	loc cfout	"`s(after)'"
 	syntax, [NUMeric STRing]
 	loc 0 "`cfout'"
-	syntax varlist, *
+	syntax varlist, [SAving(str asis) *]
 
 	if "`numeric'`string'" == "" ///
 		err 198
 	if "`numeric'" != "" & "`string'" != "" ///
 		err 198
 
-	cfout `varlist' using gen2, id(id) saving(diff, replace) `options'
+	cfout `varlist' using gen2, id(id) saving(diff, `saving' replace) `options'
 	ret add
 	preserve
 	u diff, clear
@@ -298,6 +298,10 @@ test47, num: s_alldiff, dropdiff
 test47, str: n s_alldiff
 test47, num: n s_alldiff, dropdiff
 assert "`r(alldiff)'" == "s_alldiff"
+test47, str: n, saving(labval)
+test47, str: n, saving(labval) nonumeric
+test47, str: n s_alldiff, saving(labval)
+test47, str: n s_alldiff, saving(labval) dropdiff
 cd ..
 
 * Test 48
@@ -885,6 +889,71 @@ while `:list sizeof optsN' {
 	cfout x y using gen2, id(id) nopre `opts'
 	assert _N == `N'
 }
+cd ..
+
+* Test 56
+cd 56
+u gen1
+cfout labeled formatted using gen2, id(id) saving(diff, labval) nopre
+compdta expected/diff
+cd ..
+
+* Test 57
+cd 56
+u expected/diff, clear
+foreach var of var Master Using {
+	replace `var' = "01jan1960" if `var' == "Value 0"
+	replace `var' = "02jan1960" if `var' == ""
+}
+sa diff57
+u gen1
+lab val labeled
+cfout labeled formatted using gen2, id(id) saving(diff, labval replace) nopre
+compdta diff57
+cd ..
+
+* Test 58
+cd 56
+u gen2, clear
+lab de lab2 0 "Value zero" 1 "Value one"
+lab val labeled lab2
+tempfile 2
+sa `2'
+u gen1, clear
+cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
+compdta expected/diff
+cd ..
+
+* Test 59
+cd 56
+u gen1, clear
+lab drop _all
+cfout labeled formatted using gen2, id(id) saving(diff, labval replace) nopre
+compdta expected/diff
+cd ..
+
+* Test 60
+cd 56
+u gen2, clear
+lab dir
+assert "`r(names)'" == "lab"
+lab de `r(names)' 0 "Value zero" 1 "Value one", replace
+tempfile 2
+sa `2'
+u gen1, clear
+cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
+compdta expected/diff
+cd ..
+
+* Test 61
+cd 56
+u gen2, clear
+form formatted %tc
+tempfile 2
+sa `2'
+u gen1, clear
+cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
+compdta expected/diff
 cd ..
 
 

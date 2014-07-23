@@ -494,7 +494,7 @@ pr parse_saving, sclass
 
 	cap noi syntax anything(name=fn id=filename equalok everything), ///
 		[Variable(name) MASterval(name) USingval(name) All(name) All2 ///
-		csv replace]
+		LAbval csv replace]
 	if _rc {
 		error_saving `=_rc'
 		/*NOTREACHED*/
@@ -566,9 +566,9 @@ pr parse_saving, sclass
 	}
 
 	* Return arguments for -save_diffs-.
-	loc args fn(`"`fn'"') ///
-		variable(`variable') masterval(`masterval') usingval(`usingval') ///
-		all(`all') `csv' `replace'
+	loc args fn(`"`fn'"') variable(`variable') ///
+		masterval(`masterval') usingval(`usingval') all(`all') ///
+		`labval' `csv' `replace'
 	sret loc save_diffs "`args'"
 end
 
@@ -656,7 +656,7 @@ pr save_diffs, rclass
 		id(varlist) [cfvars(varlist) cftemps(varlist)]
 		/* -saving()- arguments */
 		fn(str) variable(name) masterval(name) usingval(name) [all(name)]
-		[csv replace]
+		[labval csv replace]
 		/* other */
 		[dropdiff]
 	;
@@ -681,7 +681,8 @@ pr save_diffs, rclass
 		/* comparison variables */	"cfvars", "cftemps",
 		/* other */					"`dropdiff'" != "",
 		/* -id()- */				"ididx",
-		/* new variable names */	"variable", "masterval", "usingval", "all");
+		/* new variable names */	"variable", "masterval", "usingval", "all",
+		/* other */					"`labval'" != "");
 	#d cr
 
 	tempvar order
@@ -911,15 +912,16 @@ void diff_dta_post(
 	`RC' id_merge, `RC' id_diff, `SC' varname, `TC' master, `TC' usingval,
 	`RC' all, `RS' nofill, pointer(`TC') rowvector diffdta,
 	/* differences to post */
-	`SS' cfvar, `TM' mu, `RC' diff, `boolean' tostring,
+	`SS' cfvar, `TM' mu, `RC' diff, `boolean' tostring, `boolean' labval,
 	/* other */		`boolean' postall)
 {
 	// "n" prefix for "number of": "ncomps" for "number of comparisons."
-	`RS' lastrow, ncomps
-	`RC' select
+	`RS' lastrow, ncomps, i, j
+	`RC' select, blankvals, idx
+	`SS' format, vallab
+	`SC' blanktext
 	`TM' comps
 
-	// -saving(, all)-
 	if (postall) {
 		ncomps = st_nobs()
 		select = J(ncomps, 1, 1)
@@ -933,10 +935,33 @@ void diff_dta_post(
 		return
 
 	// Store the master and using values in comps.
-	if (tostring)
-		comps = strofreal(select(mu, select), `RealFormat')
-	else
-		comps = select(mu, select)
+	comps = select(mu, select)
+	if (tostring) {
+		if (!labval)
+			comps = strofreal(comps, `RealFormat')
+		else {
+			// -saving(, labval)-
+			format = st_varformat(cfvar)
+			vallab = st_varvaluelabel(cfvar)
+			if (vallab == "")
+				comps = strofreal(comps, format)
+			else {
+				// Values with blank value label text
+				pragma unset blankvals
+				pragma unset blanktext
+				st_vlload(vallab, blankvals, blanktext)
+				blankvals = select(blankvals, blanktext :== "")
+
+				comps = st_vlmap(vallab, comps)
+				idx = select(1::st_nobs(), select)
+				for (i = 1; i <= ncomps; i++)
+					for (j = 1; j <= 2; j++)
+						if (comps[i, j] == "")
+							if (!anyof(blankvals, mu[idx[i], j]))
+								comps[i, j] = strofreal(mu[idx[i], j], format)
+			}
+		}
+	}
 
 	// Add observations to the dataset.
 	lastrow = nofill + ncomps - 1
@@ -963,7 +988,8 @@ void cfout(
 	/* -id()- */				|`lclname' _id,
 	/* new variable names */
 	`lclname' _variable, `lclname' _masterval, `lclname' _usingval,
-	`lclname' _all)
+	`lclname' _all,
+	/* other */					`boolean' _labval)
 {
 	// Constants
 	`RS' N_ARGS, N_ARGS_SAVING
@@ -980,7 +1006,7 @@ void cfout(
 	pointer(`TC') rowvector cols
 
 	N_ARGS = 5
-	N_ARGS_SAVING = 5
+	N_ARGS_SAVING = 6
 	assert(anyof((N_ARGS, N_ARGS + N_ARGS_SAVING), args()))
 	diffdta = args() == N_ARGS + N_ARGS_SAVING
 
@@ -1010,7 +1036,7 @@ void cfout(
 		// Variables of the differences dataset
 		id_diff = J(0, 1, .)
 		var = J(0, 1, "")
-		master = usingval = J(0, 1, (length(strvars) ? "" : .))
+		master = usingval = J(0, 1, (length(strvars) | _labval ? "" : .))
 		cols = &id_diff, &var, &master, &usingval
 
 		all = J(0, 1, .)
@@ -1036,7 +1062,7 @@ void cfout(
 			pragma unset alldiff
 			alldiff = alldiff, cfvars[i]
 
-			if (_dropdiff & diffdta & anyof(strvars, cfvars[i])) {
+			if (_dropdiff & diffdta & !_labval & anyof(strvars, cfvars[i])) {
 				strvars = select(strvars, strvars :!= cfvars[i])
 				if (!length(strvars)) {
 					// Convert master usingval to real.
@@ -1059,7 +1085,8 @@ void cfout(
 					id_merge, id_diff, var, master, usingval, all, nofill, cols,
 					/* differences to post */
 					cfvars[i], mu, diff,
-					st_isnumvar(cfvars[i]) & length(strvars),
+					st_isnumvar(cfvars[i]) & (length(strvars) | _labval),
+					_labval,
 					/* other */		all_name != "")
 			}
 		}
