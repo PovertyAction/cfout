@@ -403,6 +403,44 @@ while `:list sizeof progdiscrep' {
 }
 cd ..
 
+* Test 69
+cd 69
+u 1, clear
+keep in 1/10
+sa gen1_10
+drop in 1/L
+sa gen1_0
+u 2, clear
+keep in 1/10
+sa gen2_10
+drop in 1/L
+sa gen2_0
+foreach saving in "" "saving(diff, replace)" {
+	u gen1_0, clear
+	cfout gender using gen2_10, id(id) `saving'
+	assert "`r(varlist)'" == "gender"
+	assert !r(N)
+	assert !r(discrep)
+	assert "`r(alldiff)'" == ""
+
+	u gen1_10, clear
+	cfout gender using gen2_0, id(id) `saving'
+	assert "`r(varlist)'" == "gender"
+	assert !r(N)
+	assert !r(discrep)
+	assert "`r(alldiff)'" == ""
+
+	u gen1_0, clear
+	cfout gender using gen2_0, id(id) `saving'
+	assert "`r(varlist)'" == "gender"
+	assert !r(N)
+	assert !r(discrep)
+	assert "`r(alldiff)'" == ""
+}
+u diff, clear
+assert "`:type Master'" == "byte"
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

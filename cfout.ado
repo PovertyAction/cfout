@@ -819,13 +819,13 @@ void st_sviewL(`SM' V, `RM' i, `TR' j)
 	`SS' strpound
 
 	if (eltype(var) == "real") {
-		if (!all(var :== floor(var)))
+		if (!all(var :== floor(var)) & length(var))
 			return("double")
 		else {
 			min = min(var)
 			max = max(var)
 
-			if (min >= -127 & max <= 100)
+			if (min >= -127 & max <= 100 | min >= .)
 				return("byte")
 			if (min >= -32767 & max <= 32740)
 				return("int")
@@ -1114,7 +1114,7 @@ void cfout(
 		}
 		vardiffs = sum(diff)
 
-		if (vardiffs == st_nobs()) {
+		if (vardiffs == st_nobs() & st_nobs()) {
 			pragma unset alldiff
 			alldiff = alldiff, cfvars[i]
 

@@ -351,4 +351,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>User mistakes</td>
 	<td>Specify a command to option <code>numcomp()</code> that creates a string variable.</td>
 </tr>
+<tr>
+	<td>69</td>
+	<td>Basic</td>
+	<td>Test three pairs of datasets: (1) the master data has no observations; the using does; (2) the master does have observations; the using does not; (3) neither the master nor using have observations.</td>
+</tr>
 </table>
