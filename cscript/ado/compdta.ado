@@ -14,7 +14,7 @@ pr compdta
 	if !`:length loc dta2' {
 		loc dta2 : copy loc dta1
 		tempfile dta1
-		qui sa `dta1', replace
+		qui sa `dta1', empty o replace
 	}
 
 	* Check variable lists.
