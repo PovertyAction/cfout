@@ -77,6 +77,7 @@ pr cfout, rclass
 	foreach var of loc id {
 		loc idtypes `idtypes' `:type `var''
 		loc idformats `idformats' `:form `var''
+		loc idvallabs "`idvallabs' "`:val lab `var''""
 
 		loc varlab st_varlabel(st_local("var"))
 		mata: st_local("idvarlabs", st_local("idvarlabs") + ///
@@ -89,21 +90,11 @@ pr cfout, rclass
 	keep `id' `cfvars'
 	sort `id'
 
-	tempfile tempmaster
-	qui sa `tempmaster', nol
-
-	* Save value label names and the associations between
-	* variables and value labels.
 	qui lab dir
 	loc labnames `r(names)'
-	qui ds, has(t numeric)
-	foreach var in `r(varlist)' {
-		loc labassoc `labassoc' `var' "`:val lab `var''"
-	}
 
-	drop _all
-	tempfile vallabs
-	qui sa `vallabs', empty o
+	tempfile tempmaster
+	qui sa `tempmaster', o
 
 	qui u `"`using'"', clear
 
@@ -197,6 +188,10 @@ pr cfout, rclass
 	}
 
 	* Merge, using the value labels and ID metadata from the master data.
+	* Drop shared value labels, including orphans in the master.
+	foreach lab of loc labnames {
+		cap lab drop `lab'
+	}
 	* Remove ID characteristics from the using data.
 	foreach var of loc id {
 		loc chars : char `var'[]
@@ -209,22 +204,15 @@ pr cfout, rclass
 	qui merge `id' using `tempmaster', uniq keep(`cfvars') _merge(`merge')
 	* Use the ID metadata from the master data.
 	foreach var of loc id {
-		gettoken format idformats : idformats
-		format `var' `format'
-	}
-	mata: attach_varlabs("id", "idvarlabs")
-	* Add value labels from the master data, including orphans.
-	foreach lab of loc labnames {
-		cap lab drop `lab'
-	}
-	qui append using `vallabs'
-	while `:list sizeof labassoc' {
-		gettoken var labassoc : labassoc
-		gettoken lab labassoc : labassoc
-		cap conf var `var', exact
+		gettoken format		idformats : idformats
+		gettoken lab		idvallabs : idvallabs
+
+		form `var' `format'
+		cap conf numeric var `var'
 		if !_rc ///
 			lab val `var' `lab'
 	}
+	mata: attach_varlabs("id", "idvarlabs")
 
 	* Observations in only one dataset
 	foreach data in master using {
