@@ -441,6 +441,18 @@ u diff, clear
 assert "`:type Master'" == "byte"
 cd ..
 
+* Test 70
+cd 70
+u 1, clear
+lab de orphan 1 1
+sa gen1, o
+cfout gender using 2, id(id) saving(diff)
+rcof "noi compdta 1" == 9
+compdta gen1
+cfout gender using 2, id(id) saving(diff, replace) nopre
+compdta diff
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

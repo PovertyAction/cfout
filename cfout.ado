@@ -307,6 +307,21 @@ pr cfout, rclass
 			di "{p_end}"
 		}
 	}
+
+	* Ensure that if -saving()- and -nopreserve- are both specified,
+	* the differences dataset is left in memory.
+	if `:length loc saving' & "`nopreserve'" != "" {
+		* Drop value label orphans,
+		* which are not saved in the differences dataset.
+		qui lab dir
+		foreach lab in `r(names)' {
+			qui ds, has(vallab `lab')
+			if "`r(varlist)'" == "" ///
+				lab drop `lab'
+		}
+
+		assert !c(changed)
+	}
 end
 
 

@@ -356,4 +356,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Test three pairs of datasets: (1) the master data has no observations; the using does; (2) the master does have observations; the using does not; (3) neither the master nor using have observations.</td>
 </tr>
+<tr>
+	<td>70</td>
+	<td>Basic</td>
+	<td>If options <code>saving()</code> and <code>nopreserve</code> are both specified, the differences dataset is left in memory with no value label orphans.</td>
+</tr>
 </table>
