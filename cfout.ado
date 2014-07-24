@@ -278,7 +278,7 @@ pr cfout, rclass
 		p
 		di "note: the following variables differ on every observation" _c
 		if "`dropdiff'" != "" ///
-			di " and will not be compared" _c
+			di " and will not be included" _c
 		di ":"
 		di as res "`alldiff'"
 	}
@@ -298,7 +298,7 @@ pr cfout, rclass
 	* Display warning messages.
 	if `warnid' | "`return(varonlym)'`return(difftype)'" != "" | ///
 		"`dropdiff'" != "" & "`return(alldiff)'" != "" {
-		di as txt "note: not all variables specified were compared."
+		di as txt "note: not all variables specified are included."
 	}
 	if "`nomatch'" == "" {
 		if return(Nonlym) {
