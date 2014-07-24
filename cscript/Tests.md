@@ -351,4 +351,59 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>User mistakes</td>
 	<td>Specify a command to option <code>numcomp()</code> that creates a string variable.</td>
 </tr>
+<tr>
+	<td>69</td>
+	<td>Basic</td>
+	<td>Test three pairs of datasets: (1) the master data has no observations; the using does; (2) the master does have observations; the using does not; (3) neither the master nor using have observations.</td>
+</tr>
+<tr>
+	<td>70</td>
+	<td>Basic</td>
+	<td>If options <code>saving()</code> and <code>nopreserve</code> are both specified, the differences dataset is left in memory with no value label orphans.</td>
+</tr>
+<tr>
+	<td>71</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboptions <code>saving(, keepmaster() keepusing())</code></td>
+</tr>
+<tr>
+	<td>72</td>
+	<td><code>saving()</code></td>
+	<td>Specify an unexpanded <code>varlist</code> to suboption <code>saving(, keepusing())</code>.</td>
+</tr>
+<tr>
+	<td>73</td>
+	<td>User mistakes</td>
+	<td>Specify a nonexistent variable to suboptions <code>saving(, keepmaster() keepusing())</code>.</td>
+</tr>
+<tr>
+	<td>74</td>
+	<td><code>saving()</code></td>
+	<td>Specify a comparison variable to suboptions <code>saving(, keepmaster() keepusing())</code>.</td>
+</tr>
+<tr>
+	<td>75</td>
+	<td><code>saving()</code></td>
+	<td>Specify an ID variable to suboptions <code>saving(, keepmaster() keepusing())</code>.</td>
+</tr>
+<tr>
+	<td>76</td>
+	<td><code>saving()</code></td>
+	<td>Specify a comparison variable to suboption <code>saving(, keepusing())</code> that is associated with the value label <code>vallab</code> in the using data; it may or may not be associated with <code>vallab</code> in the master. Further, <code>vallab</code> itself differs in the two datasets. The master data is preferred, even if its version of <code>vallab</code> is an orphan.</td>
+</tr>
+<tr>
+	<td>77</td>
+	<td><code>saving()</code></td>
+	<td>Specify a comparison variable to suboption <code>saving(, keepusing())</code> that is associated with different value labels in the two datasets. Because the variable is specified to <code>keepusing()</code>, the <em>using</em> data is preferred.</td>
+</tr>
+<tr>
+	<td>78</td>
+	<td><code>saving()</code></td>
+	<td>Specify a comparison variable to suboption <code>saving(, keepmaster())</code> that is associated with different value labels in the two datasets. Because the variable is specified to <code>keepmaster()</code>, the <em>master</em> data is preferred.</td>
+</tr>
+<tr>
+	<td>79</td>
+	<td><code>saving()</code></td>
+	<td>Specify suboption <code>saving(, keepusing())</code> when the using data has no observations.</td>
+</tr>
 </table>

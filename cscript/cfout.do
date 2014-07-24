@@ -403,6 +403,56 @@ while `:list sizeof progdiscrep' {
 }
 cd ..
 
+* Test 69
+cd 69
+u 1, clear
+keep in 1/10
+sa gen1_10
+drop in 1/L
+sa gen1_0
+u 2, clear
+keep in 1/10
+sa gen2_10
+drop in 1/L
+sa gen2_0
+foreach saving in "" "saving(diff, replace)" {
+	u gen1_0, clear
+	cfout gender using gen2_10, id(id) `saving'
+	assert "`r(varlist)'" == "gender"
+	assert !r(N)
+	assert !r(discrep)
+	assert "`r(alldiff)'" == ""
+
+	u gen1_10, clear
+	cfout gender using gen2_0, id(id) `saving'
+	assert "`r(varlist)'" == "gender"
+	assert !r(N)
+	assert !r(discrep)
+	assert "`r(alldiff)'" == ""
+
+	u gen1_0, clear
+	cfout gender using gen2_0, id(id) `saving'
+	assert "`r(varlist)'" == "gender"
+	assert !r(N)
+	assert !r(discrep)
+	assert "`r(alldiff)'" == ""
+}
+u diff, clear
+assert "`:type Master'" == "byte"
+cd ..
+
+* Test 70
+cd 70
+u 1, clear
+lab de orphan 1 1
+sa gen1, o
+cfout gender using 2, id(id) saving(diff)
+rcof "noi compdta 1" == 9
+compdta gen1
+cfout gender using 2, id(id) saving(diff, replace) nopre
+compdta diff
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
@@ -1028,6 +1078,191 @@ cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
 compdta expected/diff
 cd ..
 
+* Test 71
+cd 71
+* Neither -keepmaster()- nor -keepusing()-
+u gen1, clear
+cfout gender using gen2, id(id) nopre ///
+	saving(diff, replace)
+compdta expected/diff
+* -keepmaster()- only
+loc keepmaster both onlym
+u expected/diff, clear
+d, varl
+loc sort `r(sortlist)'
+merge id using gen1, sort uniqus keep(`keepmaster')
+drop if _merge == 2
+drop _merge
+sort `sort'
+foreach var of loc keepmaster {
+	move `var' Question
+}
+sa diff_keepmaster
+u gen1, clear
+cfout gender using gen2, id(id) nopre ///
+	saving(diff, replace keepmaster(`keepmaster'))
+compdta diff_keepmaster
+* -keepusing()- only
+loc keepusing both onlyu
+u expected/diff, clear
+merge id using gen2, sort uniqus keep(`keepusing')
+drop if _merge == 2
+drop _merge
+sort `sort'
+foreach var of loc keepusing {
+	move `var' Question
+}
+sa diff_keepusing
+u gen1, clear
+cfout gender using gen2, id(id) nopre ///
+	saving(diff, replace keepusing(`keepusing'))
+compdta diff_keepusing
+* Both -keepmaster()- and -keepusing()-
+u expected/diff, clear
+merge id using gen1, sort uniqus keep(`keepmaster')
+drop if _merge == 2
+drop _merge
+loc unotm : list keepusing - keepmaster
+merge id using gen2, sort uniqus keep(`unotm')
+drop if _merge == 2
+drop _merge
+sort `sort'
+foreach var of var `keepmaster' `unotm' {
+	move `var' Question
+}
+sa diff_both
+u gen1, clear
+cfout gender using gen2, id(id) nopre ///
+	saving(diff, replace keepmaster(`keepmaster') keepusing(`unotm'))
+compdta diff_both
+cd ..
+
+* Test 72
+cd 72
+u 2, clear
+forv i = 1/10 {
+	loc newvar onlyu`i'
+	gen `newvar' = `i'
+	loc newvars : list newvars | newvar
+}
+sa gen2
+u 1, clear
+cfout gender using gen2, id(id) saving(diff_expected, keepusing(`newvars'))
+foreach keepusing in onlyu* "onlyu1-onlyu10" "onlyu* onlyu*" ///
+	"onlyu1 onlyu2-onlyu9 onlyu*" "`newvars' `newvars'" {
+	cfout gender using gen2, id(id) saving(diff, keepusing(`keepusing') replace)
+	compdta diff diff_expected
+}
+cd ..
+
+* Test 74
+cd 74
+* -keepmaster()-
+u 1, clear
+cfout using 2, id(id) saving(diff_master, keepmaster(gender))
+u expected/diff, clear
+merge id using 1, sort uniqus keep(gender)
+drop if _merge == 2
+drop _merge
+sort id
+move gender Question
+compdta diff_master
+* -keepusing()-
+u 1, clear
+cfout using 2, id(id) saving(diff_using, keepusing(gender))
+u expected/diff, clear
+merge id using 2, sort uniqus keep(gender)
+drop if _merge == 2
+drop _merge
+sort id
+move gender Question
+compdta diff_using
+cd ..
+
+* Test 75
+cd 75
+u 1, clear
+cfout gender using 2, id(id) saving(diff_expected)
+foreach keep in keepmaster(id) keepusing(id) "keepmaster(id) keepusing(id)" {
+	cfout gender using 2, id(id) saving(diff, `keep' replace)
+	compdta diff diff_expected
+}
+cd ..
+
+* Test 76
+cd 76
+u 2, clear
+lab de sex 1 male 2 female
+lab val gender sex
+sa gen2
+u 1, clear
+lab de sex 1 female 2 male
+sa gen1_orphan, o
+lab val gender sex
+sa gen1_no_orphan
+foreach dta in gen1_orphan gen1_no_orphan {
+	u `dta', clear
+	lab dir
+	assert "`r(names)'" == "sex"
+
+	cfout gender using gen2, id(id) ///
+		saving(diff, keepusing(gender) replace) nopre
+	lab dir
+	assert "`r(names)'" == "sex"
+	assert "`:val lab gender'" == "sex"
+	assert "`:label (gender) 1'" == "female"
+}
+cd ..
+
+* Test 77
+cd 77
+u 2, clear
+lab de sex 1 Male 2 Female
+lab val gender sex
+sa gen2
+u 1, clear
+lab de val 1 "Value 1" 2 "Value 2"
+lab val gender val
+cfout gender using gen2, id(id) saving(diff, keepusing(gender)) nopre
+lab dir
+assert "`r(names)'" == "sex"
+assert "`:val lab gender'" == "sex"
+assert "`:label (gender) 1'" == "Male"
+cd ..
+
+* Test 78
+cd 78
+u 2, clear
+lab de sex 1 Male 2 Female
+lab val gender sex
+sa gen2
+u 1, clear
+lab de val 1 "Value 1" 2 "Value 2"
+lab val gender val
+cfout gender using gen2, id(id) saving(diff, keepmaster(gender)) nopre
+lab dir
+assert "`r(names)'" == "val"
+assert "`:val lab gender'" == "val"
+assert "`:label (gender) 1'" == "Value 1"
+cd ..
+
+* Test 79
+cd 79
+u 2, clear
+drop in 1/L
+gen onlyu = 2
+sa gen2
+u 1, clear
+cfout gender using gen2, id(id) saving(diff, keepusing(onlyu)) nomat
+u diff, clear
+assert !_N
+unab all : _all
+loc expected id onlyu Question Master Using
+assert `:list all == expected'
+conf numeric var id onlyu Master Using
+conf str var Question
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/
@@ -1193,6 +1428,15 @@ foreach opts in
 	all(Question)
 	all(Master)
 	all(Using)
+	"keepmaster(gender) variable(gender)"
+	"keepmaster(gender) masterval(gender)"
+	"keepmaster(gender) usingval(gender)"
+	"keepmaster(gender) all(gender)"
+	"keepusing(gender)  variable(gender)"
+	"keepusing(gender)  masterval(gender)"
+	"keepusing(gender)  usingval(gender)"
+	"keepusing(gender)  all(gender)"
+	"keepmaster(gender) keepusing(gender)"
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1319,6 +1563,16 @@ pr nc_gen_str
 end
 u gen1, clear
 rcof "noi cfout x using gen2, id(id) numcomp(nc_gen_str)" == 109
+cd ..
+
+* Test 73
+cd 73
+u 1, clear
+rcof "noi cfout gender using 2, id(id) saving(diff, keepmaster(onlym))" == 111
+rcof "noi cfout gender using 2, id(id) saving(diff, keepmaster(o*))" == 111
+rcof "noi cfout gender using 2, id(id) saving(diff, keepusing(onlyu))" == 111
+rcof "noi cfout gender using 2, id(id) saving(diff, keepusing(o*))" == 111
+compdta 1
 cd ..
 
 
