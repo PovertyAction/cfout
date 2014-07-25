@@ -411,4 +411,19 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Basic tests of option <code>nomatch</code></td>
 </tr>
+<tr>
+	<td>81</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboption <code>saving(, properties())</code></td>
+</tr>
+<tr>
+	<td>82</td>
+	<td><code>saving()</code></td>
+	<td>Specify suboption <code>saving(, properties())</code> when one of the variables specified to <code>cfout</code> is not included.</td>
+</tr>
+<tr>
+	<td>83</td>
+	<td>User mistakes</td>
+	<td>Specify mutually exclusive suboptions to suboption <code>saving(, properties())</code>.</td>
+</tr>
 </table>

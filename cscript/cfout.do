@@ -1281,6 +1281,49 @@ conf numeric var id onlyu Master Using
 conf str var Question
 cd ..
 
+* Test 81
+cd 81
+u 1, clear
+loc lab Respondent gender
+lab var gender "`lab'"
+cfout gender using 2, id(id) saving(diff)
+cfout gender using 2, id(id) saving(diff_props, properties())
+cfout gender using 2, id(id) saving(diff_varlabel, properties(varlabel))
+cfout gender using 2, id(id) saving(diff_mylab, properties(varlabel(mylab)))
+compdta diff diff_props
+u diff_varlabel, clear
+assert _N
+assert Question == "gender"
+assert varlabel == "`lab'"
+unab all : _all
+loc expected id Question varlabel Master Using
+assert `:list all == expected'
+drop varlabel
+compdta diff
+u diff_mylab, clear
+ren mylab varlabel
+compdta diff_varlabel
+cd ..
+
+* Test 82
+cd 82
+u 1, clear
+gen difftype = 1
+preserve
+u 2, clear
+gen difftype = "1"
+sa gen2
+restore
+cfout gender difftype using gen2, ///
+	id(id) saving(diff)
+assert "`r(difftype)'" == "difftype"
+cfout gender difftype using gen2, ///
+	id(id) saving(diff_props, properties(varlabel))
+u diff_props, clear
+drop varlabel
+compdta diff
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/
@@ -1455,6 +1498,13 @@ foreach opts in
 	"keepusing(gender)  usingval(gender)"
 	"keepusing(gender)  all(gender)"
 	"keepmaster(gender) keepusing(gender)"
+	p(varlab(id))
+	p(varlab(Question))
+	p(varlab(Master))
+	p(varlab(Using))
+	"p(varlab(diff)) all"
+	"p(varlab(gender)) keepmaster(gender)"
+	"p(varlab(gender)) keepusing(gender)"
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1591,6 +1641,17 @@ rcof "noi cfout gender using 2, id(id) saving(diff, keepmaster(o*))" == 111
 rcof "noi cfout gender using 2, id(id) saving(diff, keepusing(onlyu))" == 111
 rcof "noi cfout gender using 2, id(id) saving(diff, keepusing(o*))" == 111
 compdta 1
+cd ..
+
+* Test 83
+cd 83
+u 1, clear
+foreach opt in varlabel {
+	#d ;
+	rcof "noi cfout gender using 2, id(id) saving(diff, p(`opt' `opt'(xyz)))"
+		== 198;
+	#d cr
+}
 cd ..
 
 

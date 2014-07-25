@@ -49,14 +49,6 @@ pr cfout, rclass
 	if `:length loc numcomp' ///
 		parse_cmd_opt numcomp, syntax(, *): `numcomp'
 
-	* Parse -saving()-.
-	if `:length loc saving' {
-		parse_saving `using', id(`id'): `saving'
-		loc keepmaster `s(keepmaster)'
-		loc keepusing  `s(keepusing)'
-		loc saving_args "`s(save_diffs)'"
-	}
-
 	* Define `cfvars', the list of variables to compare.
 	loc cfvars : list uniq varlist
 
@@ -66,6 +58,16 @@ pr cfout, rclass
 	else {
 		loc cfvars : list cfvars - id
 		loc warnid 1
+	}
+
+	* Parse -saving()-.
+	if `:length loc saving' {
+		tempfile propsdta
+		parse_saving `using', id(`id') cfvars(`cfvars') ///
+			propsdta(`propsdta'): `saving'
+		loc keepmaster `s(keepmaster)'
+		loc keepusing  `s(keepusing)'
+		loc saving_args "`s(save_diffs)'"
 	}
 
 	* Define `numvarsm'.
@@ -520,13 +522,14 @@ end
 pr parse_saving, sclass
 	_on_colon_parse `0'
 	loc 0 "`s(before)'"
-	syntax using, id(varlist)
+	syntax using, id(varlist) cfvars(passthru) propsdta(str)
 	loc 0 "`s(after)'"
 
 	loc temp `using'
 	cap noi syntax anything(name=fn id=filename equalok everything), ///
 		[Variable(name) MASterval(name) USingval(name) All(name) All2 ///
-		KEEPMASter(varlist) KEEPUSing(str asis) LAbval csv replace]
+		KEEPMASter(varlist) KEEPUSing(str asis) Properties(str asis) LAbval ///
+		csv replace]
 	loc using `temp'
 	if _rc {
 		error_saving `=_rc'
@@ -594,10 +597,21 @@ pr parse_saving, sclass
 	if "`all2'" != "" ///
 		loc all diff
 
+	* Parse -properties()-.
+	if `:length loc properties' {
+		parse_saving_properties, saving(`propsdta') ///
+			`cfvars' variable(`variable'): `properties'
+		qui d using `propsdta', varl
+		loc propvars `r(varlist)'
+		loc propvars : list propvars - variable
+	}
+
 	* Check variable names.
-	loc opts variable masterval usingval all keepmaster keepusing
+	loc properties `propvars'
+	loc opts variable masterval usingval all keepmaster keepusing properties
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
+
 		foreach opt2 of loc opts {
 			loc overlap : list `opt1' & `opt2'
 			if "`overlap'" != "" {
@@ -623,10 +637,72 @@ pr parse_saving, sclass
 	sret loc keepmaster `keepmaster'
 	sret loc keepusing  `keepusing'
 	* Arguments for -save_diffs-
+	if `:length loc properties' ///
+		loc propsdta_opt propsdta(`propsdta')
 	loc args fn(`"`fn'"') variable(`variable') ///
 		masterval(`masterval') usingval(`usingval') all(`all') ///
-		keepmaster(`keepmaster') keepusing(`keepusing') `labval' `csv' `replace'
+		keepmaster(`keepmaster') keepusing(`keepusing') `propsdta_opt' ///
+		`labval' `csv' `replace'
 	sret loc save_diffs "`args'"
+end
+
+pr parse_saving_properties
+	_on_colon_parse `0'
+	loc 0 "`s(before)'"
+	syntax, saving(str) cfvars(varlist) variable(name)
+	loc 0 ", `s(after)'"
+
+	cap noi syntax, [VARLabel(name) VARLabel2]
+	loc sub sub(properties())
+	if _rc {
+		error_saving `=_rc', `sub'
+		/*NOTREACHED*/
+	}
+
+	foreach opt in varlabel {
+		if "``opt''" != "" & "``opt'2'" != "" {
+			di as err "suboptions `opt'() and `opt' are mutually exclusive"
+			error_saving 198, `sub'
+			/*NOTREACHED*/
+		}
+	}
+
+	* Default names
+	foreach opt in varlabel {
+		if "``opt'2'" != "" ///
+			loc `opt' `opt'
+	}
+
+	* Check variable names.
+	loc opts varlabel
+	while `:list sizeof opts' {
+		gettoken opt1 opts : opts
+
+		foreach opt2 of loc opts {
+			loc overlap : list `opt1' & `opt2'
+			if "`overlap'" != "" {
+				gettoken first : overlap
+				error_overlap `first', what(variable) ///
+					opt1(`opt1', sub) opt2(`opt2', sub)
+				error_saving 198, `sub'
+				/*NOTREACHED*/
+			}
+		}
+
+		if `:list variable in `opt1'' {
+			error_overlap `variable', what(variable) opt1(variable, sub) ///
+				opt2("properties(`opt1'())", sub)
+			error_saving 198
+			/*NOTREACHED*/
+		}
+	}
+
+	preserve
+
+	mata: load_props("cfvars", "variable", "varlabel")
+	sort `variable'
+
+	qui sa `"`saving'"'
 end
 
 					/* parse user input		*/
@@ -713,8 +789,9 @@ pr save_diffs, rclass
 		tempmaster(str) [tempusing(str)] id(varlist)
 		[cfvars(varlist) cftemps(varlist)]
 		/* -saving()- arguments */
-		fn(str) variable(name) masterval(name) usingval(name) [all(name)]
-		[keepmaster(namelist) keepusing(namelist) labval csv replace]
+		fn(str) variable(name) masterval(name) usingval(name) [all(name)
+		keepmaster(namelist) keepusing(namelist) propsdta(str)
+		labval csv replace]
 		/* other */
 		[numcomp_cmd(name) numcomp_opts(str asis) dropdiff]
 	;
@@ -768,12 +845,25 @@ pr save_diffs, rclass
 		}
 	}
 
+	* -saving(, properties())-
+	if !`:length loc propsdta' ///
+		loc propvars `variable'
+	else {
+		qui d using `"`propsdta'"', varl
+		loc propvars `r(varlist)'
+
+		sort `variable'
+		qui merge `variable' using `"`propsdta'"', uniqus _merge(`merge')
+		qui drop if `merge' == 2
+		drop `merge'
+	}
+
 	* Sort so that within `id', Question remains sorted by
 	* the original variable order.
 	sort `id' `order'
 	drop `order'
 
-	order `id' `keepmaster' `keepusing' `variable' `all' `masterval' `usingval'
+	order `id' `keepmaster' `keepusing' `propvars' `all' `masterval' `usingval'
 
 	if "`csv'" == "" {
 		* Remove the dataset's label and characteristics.
@@ -942,6 +1032,32 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 }
 
 					/* interface with Stata		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* properties dataset	*/
+
+// Create and load the properties dataset.
+void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _varlabel)
+{
+	`RS' nvars, i
+	`SC' var, varlab
+
+	var = tokens(st_local(_cfvars))'
+	nvars = length(var)
+	varlab = J(nvars, 1, "")
+
+	for (i = 1; i <= nvars; i++) {
+		varlab[i] = st_varlabel(var[i])
+	}
+
+	st_dropvar(.)
+	st_store_new(var, st_local(_variable))
+	st_store_new(varlab, st_local(_varlabel), "Variable label")
+}
+
+					/* properties dataset	*/
 /* -------------------------------------------------------------------------- */
 
 
