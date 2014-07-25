@@ -453,6 +453,24 @@ cfout gender using 2, id(id) saving(diff, replace) nopre
 compdta diff
 cd ..
 
+* Test 80
+cd 80
+u 2, clear
+assert _N > 2
+drop in 1
+sa gen2
+u 1, clear
+drop in L
+cfout gender using gen2, id(id) saving(diff)
+assert r(N)
+assert r(Nonlym) == 1
+assert r(Nonlyu) == 1
+cfout gender using gen2, id(id) saving(diff_nomatch) nomatch
+compdta diff diff_nomatch
+* Show warning messages about both variables and observations not compared.
+cfout using gen2, id(id) saving(diff, replace)
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
@@ -1253,7 +1271,7 @@ drop in 1/L
 gen onlyu = 2
 sa gen2
 u 1, clear
-cfout gender using gen2, id(id) saving(diff, keepusing(onlyu)) nomat
+cfout gender using gen2, id(id) saving(diff, keepusing(onlyu)) nomatch
 u diff, clear
 assert !_N
 unab all : _all

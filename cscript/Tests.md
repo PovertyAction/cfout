@@ -406,4 +406,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>saving()</code></td>
 	<td>Specify suboption <code>saving(, keepusing())</code> when the using data has no observations.</td>
 </tr>
+<tr>
+	<td>80</td>
+	<td>Basic</td>
+	<td>Basic tests of option <code>nomatch</code></td>
+</tr>
 </table>
