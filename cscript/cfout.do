@@ -1284,25 +1284,52 @@ cd ..
 * Test 81
 cd 81
 u 1, clear
-loc lab Respondent gender
-lab var gender "`lab'"
 cfout gender using 2, id(id) saving(diff)
 cfout gender using 2, id(id) saving(diff_props, properties())
-cfout gender using 2, id(id) saving(diff_varlabel, properties(varlabel))
-cfout gender using 2, id(id) saving(diff_mylab, properties(varlabel(mylab)))
 compdta diff diff_props
-u diff_varlabel, clear
-assert _N
-assert Question == "gender"
-assert varlabel == "`lab'"
-unab all : _all
-loc expected id Question varlabel Master Using
-assert `:list all == expected'
-drop varlabel
-compdta diff
-u diff_mylab, clear
-ren mylab varlabel
-compdta diff_varlabel
+loc type : type gender
+loc format : format gender
+loc vallabel sex
+lab de `vallabel' 1 male 2 female
+lab val gender `vallabel'
+loc varlabel Respondent gender
+lab var gender "`varlabel'"
+sa gen1
+loc opts type format vallabel varlabel
+foreach opt of loc opts {
+	cfout gender using 2, id(id) ///
+		saving(diff1, replace properties(`opt'))
+	cfout gender using 2, id(id) ///
+		saving(diff2, replace properties(`opt'(myprop)))
+
+	u diff1, clear
+	assert _N
+	assert Question == "gender"
+	assert `opt' == "``opt''"
+	unab all : _all
+	loc expected id Question `opt' Master Using
+	assert `:list all == expected'
+	drop `opt'
+	compdta diff
+
+	u diff2, clear
+	ren myprop `opt'
+	compdta diff1
+
+	u diff_props, clear
+	gen order = _n
+	merge id Question using diff1, sort keep(`opt')
+	assert _merge == 3
+	drop _merge
+	move `opt' Master
+	sort id order
+	drop order
+	sa, replace
+
+	u gen1, clear
+}
+cfout gender using 2, id(id) saving(diff_all, properties(`opts')) nopre
+compdta diff_props
 cd ..
 
 * Test 82
@@ -1505,6 +1532,12 @@ foreach opts in
 	"p(varlab(diff)) all"
 	"p(varlab(gender)) keepmaster(gender)"
 	"p(varlab(gender)) keepusing(gender)"
+	"p(type(x) format(x))"
+	"p(type(x) vallabel(x))"
+	"p(type(x) varlabel(x))"
+	"p(format(x) vallabel(x))"
+	"p(format(x) varlabel(x))"
+	"p(vallabel(x) varlabel(x))"
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1646,7 +1679,7 @@ cd ..
 * Test 83
 cd 83
 u 1, clear
-foreach opt in varlabel {
+foreach opt in type format vallabel varlabel {
 	#d ;
 	rcof "noi cfout gender using 2, id(id) saving(diff, p(`opt' `opt'(xyz)))"
 		== 198;

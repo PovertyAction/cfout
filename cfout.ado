@@ -652,29 +652,28 @@ pr parse_saving_properties
 	syntax, saving(str) cfvars(varlist) variable(name)
 	loc 0 ", `s(after)'"
 
-	cap noi syntax, [VARLabel(name) VARLabel2]
+	cap noi syntax, [Type(name) Type2 Format(name) Format2 ///
+		VALLabel(name) VALLabel2 VARLabel(name) VARLabel2]
 	loc sub sub(properties())
 	if _rc {
 		error_saving `=_rc', `sub'
 		/*NOTREACHED*/
 	}
 
-	foreach opt in varlabel {
+	foreach opt in type format vallabel varlabel {
 		if "``opt''" != "" & "``opt'2'" != "" {
 			di as err "suboptions `opt'() and `opt' are mutually exclusive"
 			error_saving 198, `sub'
 			/*NOTREACHED*/
 		}
-	}
 
-	* Default names
-	foreach opt in varlabel {
+		* Default names
 		if "``opt'2'" != "" ///
 			loc `opt' `opt'
 	}
 
 	* Check variable names.
-	loc opts varlabel
+	loc opts type format vallabel varlabel
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
 
@@ -699,7 +698,8 @@ pr parse_saving_properties
 
 	preserve
 
-	mata: load_props("cfvars", "variable", "varlabel")
+	mata: load_props("cfvars", "variable", "type", "format", "vallabel", ///
+		"varlabel")
 	sort `variable'
 
 	qui sa `"`saving'"'
@@ -1039,22 +1039,42 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 					/* properties dataset	*/
 
 // Create and load the properties dataset.
-void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _varlabel)
+void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
+	`lclname' _format, `lclname' _vallabel, `lclname' _varlabel)
 {
 	`RS' nvars, i
-	`SC' var, varlab
+	`SS' name
+	`SC' var, type, format, vallab, varlab
 
 	var = tokens(st_local(_cfvars))'
 	nvars = length(var)
-	varlab = J(nvars, 1, "")
+	type = format = vallab = varlab = J(nvars, 1, "")
 
 	for (i = 1; i <= nvars; i++) {
+		type[i] = st_vartype(var[i])
+		format[i] = st_varformat(var[i])
+		vallab[i] = st_varvaluelabel(var[i])
 		varlab[i] = st_varlabel(var[i])
 	}
 
 	st_dropvar(.)
 	st_store_new(var, st_local(_variable))
-	st_store_new(varlab, st_local(_varlabel), "Variable label")
+
+	name = st_local(_type)
+	if (name != "")
+		st_store_new(type, name, "Storage type")
+
+	name = st_local(_format)
+	if (name != "")
+		st_store_new(format, name, "Display format")
+
+	name = st_local(_vallabel)
+	if (name != "")
+		st_store_new(vallab, name, "Value label")
+
+	name = st_local(_varlabel)
+	if (name != "")
+		st_store_new(varlab, name, "Variable label")
 }
 
 					/* properties dataset	*/
