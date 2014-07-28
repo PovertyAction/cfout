@@ -5,18 +5,6 @@ pr cfout, rclass
 	/* ---------------------------------------------------------------------- */
 					/* check input for errors	*/
 
-	/*
-	Version 2 syntax:
-
-	syntax [varlist] using,
-		/* main */
-		id(varlist)
-		/* string comparison */
-		[Lower Upper NOPunct]
-		/* other */
-		[SAving(str asis) NOString NONUMeric DROPDiff NOMATch]
-	*/
-
 	cap cfout_syntax 2 `0'
 	if _rc {
 		cap cfout_syntax 1 `0'
