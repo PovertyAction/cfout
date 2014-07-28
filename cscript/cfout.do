@@ -1351,6 +1351,41 @@ drop varlabel
 compdta diff
 cd ..
 
+* Test 84
+cd 84
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+char gender[x1] abc
+char gender[x2] 123
+cfout gender using 2, id(id) saving(diff_char, p(char(x1 x2)))
+cfout gender using 2, id(id) saving(diff_charstub, p(char(x1 x2) charstub(c)))
+u diff_char, clear
+assert _N
+assert Question == "gender"
+assert char_x1 == "abc"
+assert char_x2 == "123"
+unab all : _all
+loc expected id Question char_x1 char_x2 Master Using
+assert `:list all == expected'
+ren char_x1 cx1
+ren char_x2 cx2
+compdta diff_charstub
+drop cx?
+compdta diff
+cd ..
+
+* Test 86
+cd 86
+if c(stata_version) >= 13 {
+	u 1, clear
+	mata: st_global("gender[x]", x = (c("maxstrvarlen") + 1) * "x")
+	cfout gender using 2, id(id) saving(diff, p(char(x))) nopre
+	assert _N
+	assert "`:type char_x'" == "strL"
+	mata: assert(st_sdata(., "char_x") == J(st_nobs(), 1, x))
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/
@@ -1535,9 +1570,13 @@ foreach opts in
 	"p(type(x) format(x))"
 	"p(type(x) vallabel(x))"
 	"p(type(x) varlabel(x))"
+	"p(type(char_x) char(x))"
 	"p(format(x) vallabel(x))"
 	"p(format(x) varlabel(x))"
+	"p(format(char_x) char(x))"
 	"p(vallabel(x) varlabel(x))"
+	"p(vallabel(char_x) char(x))"
+	"p(varlabel(char_x) char(x))"
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1685,6 +1724,19 @@ foreach opt in type format vallabel varlabel {
 		== 198;
 	#d cr
 }
+cd ..
+
+* Test 85
+cd 85
+u 1, clear
+char gender[x] abc
+loc x31 : di _dup(31) "x"
+loc x32 : di _dup(32) "x"
+cfout gender using 2, id(id) saving(diff1, p(char(x) charstub(`x31')))
+#d ;
+rcof "noi cfout gender using 2, id(id)
+	saving(diff2, p(char(x) charstub(`x32')))" == 7;
+#d cr
 cd ..
 
 

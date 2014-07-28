@@ -653,7 +653,8 @@ pr parse_saving_properties
 	loc 0 ", `s(after)'"
 
 	cap noi syntax, [Type(name) Type2 Format(name) Format2 ///
-		VALLabel(name) VALLabel2 VARLabel(name) VARLabel2]
+		VALLabel(name) VALLabel2 VARLabel(name) VARLabel2 ///
+		Char(namelist) CHARStub(name)]
 	loc sub sub(properties())
 	if _rc {
 		error_saving `=_rc', `sub'
@@ -672,8 +673,26 @@ pr parse_saving_properties
 			loc `opt' `opt'
 	}
 
+	* Parse -char()- and -charstub()-.
+	if "`charstub'" == "" ///
+		loc charstub char_
+	loc char : list uniq char
+	foreach c of loc char {
+		loc charvar `charstub'`c'
+		loc charvars : list charvars | charvar
+
+		cap conf name `charvar'
+		if _rc {
+			di as err "suboptions char(), charstub(): `charvar' invalid name"
+			error_saving `=_rc', `sub'
+			/*NOTREACHED*/
+		}
+	}
+
 	* Check variable names.
-	loc opts type format vallabel varlabel
+	loc chartemp `char'
+	loc char `charvars'
+	loc opts type format vallabel varlabel char
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
 
@@ -695,11 +714,12 @@ pr parse_saving_properties
 			/*NOTREACHED*/
 		}
 	}
+	loc char `chartemp'
 
 	preserve
 
 	mata: load_props("cfvars", "variable", "type", "format", "vallabel", ///
-		"varlabel")
+		"varlabel", "char", "charstub")
 	sort `variable'
 
 	qui sa `"`saving'"'
@@ -1040,21 +1060,30 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 
 // Create and load the properties dataset.
 void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
-	`lclname' _format, `lclname' _vallabel, `lclname' _varlabel)
+	`lclname' _format, `lclname' _vallabel, `lclname' _varlabel,
+	`lclname' _char, `lclname' _charstub)
 {
-	`RS' nvars, i
-	`SS' name
-	`SC' var, type, format, vallab, varlab
+	`RS' nvars, nchars, i, j
+	`SS' name, charstub
+	`SC' var, type, format, vallab, varlab, chars
+	`SM' charcols
 
 	var = tokens(st_local(_cfvars))'
 	nvars = length(var)
 	type = format = vallab = varlab = J(nvars, 1, "")
+
+	chars = tokens(st_local(_char))
+	nchars = length(chars)
+	charcols = J(nvars, nchars, "")
 
 	for (i = 1; i <= nvars; i++) {
 		type[i] = st_vartype(var[i])
 		format[i] = st_varformat(var[i])
 		vallab[i] = st_varvaluelabel(var[i])
 		varlab[i] = st_varlabel(var[i])
+
+		for (j = 1; j <= nchars; j++)
+			charcols[i, j] = st_global(sprintf("%s[%s]", var[i], chars[j]))
 	}
 
 	st_dropvar(.)
@@ -1075,6 +1104,12 @@ void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
 	name = st_local(_varlabel)
 	if (name != "")
 		st_store_new(varlab, name, "Variable label")
+
+	charstub = st_local(_charstub)
+	for (i = 1; i <= nchars; i++) {
+		st_store_new(charcols[,i], charstub + chars[i],
+			"Characteristic " + chars[i])
+	}
 }
 
 					/* properties dataset	*/
