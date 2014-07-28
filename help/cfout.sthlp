@@ -7,29 +7,99 @@
 optionally saving the list of differences to file
 
 
+{marker syntax}{...}
 {title:Syntax}
 
-{p 8 17 2}
-{cmdab:cfout}
-[{varlist}]
-{cmd: using} {it: filename}
-{cmd:, id}({varname}) [{it:options}]
+{p 8 10 2}
+{cmd:cfout} [{varlist}] {cmd:using} {it:{help filename}}{cmd:,}
+{opth id(varlist)} [{it:options}]
 
-{synoptset 20 tabbed}{...}
+{* Using -help odbc- as a template.}{...}
+{* 29 is the position of the last character in the first column + 3.}{...}
+{synoptset 29 tabbed}{...}
 {synopthdr}
 {synoptline}
-{synopt:{opt nop:unct}}ignores differences in punctuation and capitalization{p_end}
-{synopt:{opt alt:id(varname)}}display an additional identifying variable.{p_end}
-{synopt:{opt na:me(filename)}}name of the resulting .csv file{p_end}
-{synopt:{opt f:ormat( %fmt)}}display format to use for numeric variables{p_end}
-{synopt:{opt nomat:ch}}surpress warnings about missing observations{p_end}
-{synopt:{opt u:pper}}convert all string variables to upper case before comparing{p_end}
-{synopt:{opt l:ower}}convert all string variables to lower case before comparing{p_end}
-{synopt:{opt nos:tring}}do not compare any string variables{p_end}
-{synopt:{opt replace}}overwrite existing filename{p_end}
+{syntab:Main}
+{* Using -help heckman- as a template.}{...}
+{p2coldent:* {opth id(varlist)}}unique ID variables{p_end}
+
+{syntab:String comparison}
+{synopt:{opt l:ower}}convert string variables to lowercase before
+comparing{p_end}
+{synopt:{opt u:pper}}convert string variables to uppercase before
+comparing{p_end}
+{synopt:{opt nop:unct}}remove punctuation in string variables before
+comparing{p_end}
+{synopt:{opt strc:omp(command)}}execute {it:command} for
+string variable pairs before comparing{p_end}
+
+{syntab:Options}
+{* Using -help ca- as a template.}{...}
+{synopt:{cmdab:sa:ving(}{it:filename} [{cmd:,} {help cfout##sopts:{it:sopts}}]{cmd:)}}save
+list of differences to {it:filename}{p_end}
+{synopt:{opt numc:omp(command)}}use {it:command} to determine differences within
+numeric variable pairs{p_end}
+{synopt:{opt nos:tring}}do not compare string variables{p_end}
+{synopt:{opt nonum:eric}}do not compare numeric variables{p_end}
+{synopt:{opt dropd:iff}}do not include variables that
+differ on every observation{p_end}
+{synopt:{opt nomat:ch}}suppress warnings about observations that
+are not in both master and using data{p_end}
+{* Using description from -help stsplit-.}{...}
+{synopt:{opt nop:reserve}}do not save original data; programmer's option{p_end}
 {synoptline}
 {p2colreset}{...}
-{p 4 6 2}
+{* Using -help heckman- as a template.}{...}
+{p 4 6 2}* {opt id()} is required.{p_end}
+
+{* Using -help ca- as a template.}{...}
+{marker sopts}{...}
+{synoptset 23 tabbed}{...}
+{synopthdr:sopts}
+{synoptline}
+{synopt:{opth v:ariable(newvar)}}name of variable name variable;
+default is {cmd:Question}{p_end}
+{synopt:{opth mas:terval(newvar)}}name of master value variable;
+default is {cmd:Master}{p_end}
+{synopt:{opth us:ingval(newvar)}}name of using value variable;
+default is {cmd:Using}{p_end}
+{synopt:{opth keepmas:ter(varlist)}}variables to keep from master data{p_end}
+{synopt:{opth keepus:ing(varlist)}}variables to keep from using data{p_end}
+{synopt:{cmdab:a:ll}[{cmd:(}{newvar}{cmd:)}]}save all comparisons,
+not just differences, creating a variable named {it:newvar} to mark differences;
+default is {cmd:diff}{p_end}
+{synopt:{opth p:roperties(cfout##popts:popts)}}save variable properties as
+variables{p_end}
+{synopt:{opt la:bval}}save labeled master and using values{p_end}
+{synopt:{opt csv}}output in comma-separated format instead of
+as a Stata dataset{p_end}
+{synopt:{opt replace}}overwrite existing {it:filename}{p_end}
+{synoptline}
+{p2colreset}{...}
+
+{marker popts}{...}
+{synoptset 23 tabbed}{...}
+{synopthdr:popts}
+{synoptline}
+{synopt:{cmdab:t:ype}[{cmd:(}{newvar}{cmd:)}]}save storage types as
+{it:newvar}; default is {cmd:type}{p_end}
+{synopt:{cmdab:f:ormat}[{cmd:(}{newvar}{cmd:)}]}save display formats as
+{it:newvar}; default is {cmd:format}{p_end}
+{synopt:{cmdab:vall:abel}[{cmd:(}{newvar}{cmd:)}]}save value labels as
+{it:newvar}; default is {cmd:vallabel}{p_end}
+{synopt:{cmdab:varl:abel}[{cmd:(}{newvar}{cmd:)}]}save variable labels as
+{it:newvar}; default is {cmd:varlabel}{p_end}
+{synopt:{opt c:har(charnamelist)}}save characteristics{p_end}
+{* Using description of stub from -help split-.}{...}
+{synopt:{opt chars:tub(stub)}}begin characteristic variable names with
+{it:stub}; default is {cmd:char_}{p_end}
+{* Using -help graph_pie- as a template.}{...}
+{synopt:{cmdab:note:s(}{it:{help numlist}}|{cmd:_all)}}save notes{p_end}
+{synopt:{opt notess:tub(stub)}}begin notes variable names with {it:stub};
+default is {cmd:note}{p_end}
+{synoptline}
+{p2colreset}{...}
+
 
 {title:Description}
 
