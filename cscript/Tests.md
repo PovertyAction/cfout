@@ -441,4 +441,14 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>saving()</code></td>
 	<td>Specify a characteristic to suboption <code>saving(, properties(char()))</code> that must be stored in a <code>strL</code>.</td>
 </tr>
+<tr>
+	<td>87</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboptions <code>saving(, properties(notes() notesstub()))</code></td>
+</tr>
+<tr>
+	<td>88</td>
+	<td>User mistakes</td>
+	<td>Specify invalid suboptions <code>saving(, properties(notes() notesstub()))</code>.</td>
+</tr>
 </table>

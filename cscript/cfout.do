@@ -1386,6 +1386,52 @@ if c(stata_version) >= 13 {
 }
 cd ..
 
+* Test 87
+cd 87
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+loc note1 And Winter slumbering in the open air,
+loc note2 Wears on his smiling face a dream of Spring!
+note gender: `note1'
+note gender: `note2'
+sa gen1
+cfout gender using 2, id(id) saving(diff_notes, p(notes(1 2)))
+cfout gender using 2, id(id) saving(diff_notesstub, p(notes(1 2) notesstub(n)))
+cfout gender using 2, id(id) saving(diff_char, p(char(note1 note2)))
+u diff_notes, clear
+assert _N
+assert Question == "gender"
+assert note1 == "`note1'"
+assert note2 == "`note2'"
+unab all : _all
+loc expected id Question note1 note2 Master Using
+assert `:list all == expected'
+ren note1 n1
+ren note2 n2
+compdta diff_notesstub
+forv i = 1/2 {
+	ren n`i' char_note`i'
+	lab var char_note`i' "Characteristic note`i'"
+}
+compdta diff_char
+drop char_note?
+compdta diff
+* Various -notes()- specifications
+u gen1, clear
+foreach notes in 1/2 2/1 _all "1/2 2/1" "1/2 _all" "_all 1/2" "1 _all 2" ///
+	"_all _all" {
+	cfout gender using 2, id(id) saving(diff_list, p(notes(`notes')) replace)
+	compdta diff_list diff_notes
+}
+cfout gender using 2, id(id) saving(diff_notes4, p(notes(1 2 4))) nopre
+assert note4 == ""
+drop note4
+compdta diff_notes
+u gen1, clear
+cfout gender using 2, id(id) saving(diff_notes4_2, p(notes(1 2 4 _all))) nopre
+compdta diff_notes4_2
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/
@@ -1571,12 +1617,17 @@ foreach opts in
 	"p(type(x) vallabel(x))"
 	"p(type(x) varlabel(x))"
 	"p(type(char_x) char(x))"
+	"p(type(note1) notes(1))"
 	"p(format(x) vallabel(x))"
 	"p(format(x) varlabel(x))"
 	"p(format(char_x) char(x))"
+	"p(format(note1) notes(1))"
 	"p(vallabel(x) varlabel(x))"
 	"p(vallabel(char_x) char(x))"
+	"p(vallabel(note1) notes(1))"
 	"p(varlabel(char_x) char(x))"
+	"p(varlabel(note1) notes(1))"
+	"p(char(note1) notes(1) notesstub(char_note))"
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1737,6 +1788,23 @@ cfout gender using 2, id(id) saving(diff1, p(char(x) charstub(`x31')))
 rcof "noi cfout gender using 2, id(id)
 	saving(diff2, p(char(x) charstub(`x32')))" == 7;
 #d cr
+cd ..
+
+* Test 88
+cd 88
+u 1, clear
+note gender: Lugete, O Veneres Cupidinesque
+loc x31 : di _dup(31) "x"
+loc x32 : di _dup(32) "x"
+loc cfout noi cfout gender using 2, id(id)
+`cfout' saving(diff, p(note(1) notesstub(`x31')))
+erase diff.dta
+rcof "`cfout' saving(diff, p(note(1) notesstub(`x32')))" == 7
+rcof "`cfout' saving(diff, p(note(0)))" == 125
+rcof "`cfout' saving(diff, p(note(-1)))" == 125
+rcof "`cfout' saving(diff, p(note(1.5)))" == 126
+rcof "`cfout' saving(diff, p(note(x)))" == 121
+rcof `"`cfout' saving(diff, p(note(" ")))"' == 122
 cd ..
 
 

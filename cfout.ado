@@ -519,10 +519,23 @@ pr parse_cmd_opt
 	}
 end
 
+pr notes_count, rclass
+	syntax [varlist]
+
+	loc N 0
+	foreach var of loc varlist {
+		loc note0 : char `var'[note0]
+		if "`note0'" != "" ///
+			loc N = max(`N', `note0')
+	}
+
+	ret sca N = `N'
+end
+
 pr parse_saving, sclass
 	_on_colon_parse `0'
 	loc 0 "`s(before)'"
-	syntax using, id(varlist) cfvars(passthru) propsdta(str)
+	syntax using, id(varlist) cfvars(varlist) propsdta(str)
 	loc 0 "`s(after)'"
 
 	loc temp `using'
@@ -565,19 +578,34 @@ pr parse_saving, sclass
 		/*NOTREACHED*/
 	}
 
+	if `:length loc properties' {
+		notes_count `cfvars'
+		loc notesN = r(N)
+	}
+
 	* Parse -keepusing()-.
-	if `:length loc keepusing' {
+	if `:length loc keepusing' | `:length loc properties' {
 		preserve
+
 		qui d `using'
 		if r(N) ///
 			qui u `using' in 1, clear
 		else
 			qui u `using', clear
-		cap noi unab keepusing : `keepusing'
-		if _rc {
-			error_saving `=_rc', sub(keepusing())
-			/*NOTREACHED*/
+
+		if `:length loc keepusing' {
+			cap noi unab keepusing : `keepusing'
+			if _rc {
+				error_saving `=_rc', sub(keepusing())
+				/*NOTREACHED*/
+			}
 		}
+
+		if `:length loc properties' {
+			notes_count `cfvars'
+			loc notesN = max(`notesN', r(N))
+		}
+
 		restore
 	}
 
@@ -599,8 +627,8 @@ pr parse_saving, sclass
 
 	* Parse -properties()-.
 	if `:length loc properties' {
-		parse_saving_properties, saving(`propsdta') ///
-			`cfvars' variable(`variable'): `properties'
+		parse_saving_properties, saving(`propsdta') cfvars(`cfvars') ///
+			variable(`variable') notes_count(`notesN'): `properties'
 		qui d using `propsdta', varl
 		loc propvars `r(varlist)'
 		loc propvars : list propvars - variable
@@ -649,12 +677,12 @@ end
 pr parse_saving_properties
 	_on_colon_parse `0'
 	loc 0 "`s(before)'"
-	syntax, saving(str) cfvars(varlist) variable(name)
+	syntax, saving(str) cfvars(varlist) variable(name) notes_count(integer)
 	loc 0 ", `s(after)'"
 
 	cap noi syntax, [Type(name) Type2 Format(name) Format2 ///
 		VALLabel(name) VALLabel2 VARLabel(name) VARLabel2 ///
-		Char(namelist) CHARStub(name)]
+		Char(namelist) CHARStub(name) Notes(str) NOTESStub(name)]
 	loc sub sub(properties())
 	if _rc {
 		error_saving `=_rc', `sub'
@@ -689,10 +717,57 @@ pr parse_saving_properties
 		}
 	}
 
+	* Parse -notes()- and -notesstub()-.
+	if "`notesstub'" == "" ///
+		loc notesstub note
+	loc _all _all
+	if `:list _all in notes' {
+		if `notes_count' {
+			numlist "1/`notes_count'"
+			loc notes_all `r(numlist)'
+		}
+
+		while `:list _all in notes' {
+			loc notes : list notes - _all
+		}
+	}
+	if "`notes'" != "" {
+		cap noi numlist "`notes'", min(1) int r(>0)
+		if _rc {
+			di as err "suboption notes() invalid"
+			error_saving `=_rc', `sub'
+			/*NOTREACHED*/
+		}
+		loc notes `r(numlist)'
+		loc notes : list uniq notes
+	}
+	loc notes : list notes | notes_all
+	if "`notes'" != "" {
+		numlist "`notes'", sort
+		loc notes `r(numlist)'
+
+		loc notes : list retok notes
+		loc notes " `notes'"
+		loc notevars : subinstr loc notes " " " `notesstub'", all
+		loc notes `notes'
+		loc notevars `notevars'
+
+		foreach var of loc notevars {
+			cap conf name `var'
+			if _rc {
+				di as err "suboptions notes(), notesstub(): `var' invalid name"
+				error_saving `=_rc', `sub'
+				/*NOTREACHED*/
+			}
+		}
+	}
+
 	* Check variable names.
-	loc chartemp `char'
+	loc tempchar `char'
 	loc char `charvars'
-	loc opts type format vallabel varlabel char
+	loc tempnotes `notes'
+	loc notes `notevars'
+	loc opts type format vallabel varlabel char notes
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
 
@@ -714,12 +789,13 @@ pr parse_saving_properties
 			/*NOTREACHED*/
 		}
 	}
-	loc char `chartemp'
+	loc char  `tempchar'
+	loc notes `tempnotes'
 
 	preserve
 
 	mata: load_props("cfvars", "variable", "type", "format", "vallabel", ///
-		"varlabel", "char", "charstub")
+		"varlabel", "char", "charstub", "notes", "notesstub")
 	sort `variable'
 
 	qui sa `"`saving'"'
@@ -1061,11 +1137,12 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 // Create and load the properties dataset.
 void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
 	`lclname' _format, `lclname' _vallabel, `lclname' _varlabel,
-	`lclname' _char, `lclname' _charstub)
+	`lclname' _char,  `lclname' _charstub,
+	`lclname' _notes, `lclname' _notesstub)
 {
-	`RS' nvars, nchars, i, j
-	`SS' name, charstub
-	`SC' var, type, format, vallab, varlab, chars
+	`RS' nvars, nchars, ncharsall, i, j
+	`SS' name, charstub, notesstub, lab
+	`SC' var, type, format, vallab, varlab, chars, charsall
 	`SM' charcols
 
 	var = tokens(st_local(_cfvars))'
@@ -1073,8 +1150,10 @@ void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
 	type = format = vallab = varlab = J(nvars, 1, "")
 
 	chars = tokens(st_local(_char))
+	charsall = chars, "note" :+ tokens(st_local(_notes))
 	nchars = length(chars)
-	charcols = J(nvars, nchars, "")
+	ncharsall = length(charsall)
+	charcols = J(nvars, ncharsall, "")
 
 	for (i = 1; i <= nvars; i++) {
 		type[i] = st_vartype(var[i])
@@ -1082,8 +1161,8 @@ void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
 		vallab[i] = st_varvaluelabel(var[i])
 		varlab[i] = st_varlabel(var[i])
 
-		for (j = 1; j <= nchars; j++)
-			charcols[i, j] = st_global(sprintf("%s[%s]", var[i], chars[j]))
+		for (j = 1; j <= ncharsall; j++)
+			charcols[i, j] = st_global(sprintf("%s[%s]", var[i], charsall[j]))
 	}
 
 	st_dropvar(.)
@@ -1106,9 +1185,17 @@ void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
 		st_store_new(varlab, name, "Variable label")
 
 	charstub = st_local(_charstub)
-	for (i = 1; i <= nchars; i++) {
-		st_store_new(charcols[,i], charstub + chars[i],
-			"Characteristic " + chars[i])
+	notesstub = st_local(_notesstub)
+	for (i = 1; i <= ncharsall; i++) {
+		if (i <= nchars) {
+			name = charstub + charsall[i]
+			lab = "Characteristic " + charsall[i]
+		}
+		else {
+			name = subinstr(charsall[i], "note", notesstub, 1)
+			lab  = subinstr(charsall[i], "note", "Note ", 1)
+		}
+		st_store_new(charcols[,i], name, lab)
 	}
 }
 
