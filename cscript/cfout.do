@@ -1281,6 +1281,157 @@ conf numeric var id onlyu Master Using
 conf str var Question
 cd ..
 
+* Test 81
+cd 81
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+cfout gender using 2, id(id) saving(diff_props, properties())
+compdta diff diff_props
+loc type : type gender
+loc format : format gender
+loc vallabel sex
+lab de `vallabel' 1 male 2 female
+lab val gender `vallabel'
+loc varlabel Respondent gender
+lab var gender "`varlabel'"
+sa gen1
+loc opts type format vallabel varlabel
+foreach opt of loc opts {
+	cfout gender using 2, id(id) ///
+		saving(diff1, replace properties(`opt'))
+	cfout gender using 2, id(id) ///
+		saving(diff2, replace properties(`opt'(myprop)))
+
+	u diff1, clear
+	assert _N
+	assert Question == "gender"
+	assert `opt' == "``opt''"
+	unab all : _all
+	loc expected id Question `opt' Master Using
+	assert `:list all == expected'
+	drop `opt'
+	compdta diff
+
+	u diff2, clear
+	ren myprop `opt'
+	compdta diff1
+
+	u diff_props, clear
+	gen order = _n
+	merge id Question using diff1, sort keep(`opt')
+	assert _merge == 3
+	drop _merge
+	move `opt' Master
+	sort id order
+	drop order
+	sa, replace
+
+	u gen1, clear
+}
+cfout gender using 2, id(id) saving(diff_all, properties(`opts')) nopre
+compdta diff_props
+cd ..
+
+* Test 82
+cd 82
+u 1, clear
+gen difftype = 1
+preserve
+u 2, clear
+gen difftype = "1"
+sa gen2
+restore
+cfout gender difftype using gen2, ///
+	id(id) saving(diff)
+assert "`r(difftype)'" == "difftype"
+cfout gender difftype using gen2, ///
+	id(id) saving(diff_props, properties(varlabel))
+u diff_props, clear
+drop varlabel
+compdta diff
+cd ..
+
+* Test 84
+cd 84
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+char gender[x1] abc
+char gender[x2] 123
+cfout gender using 2, id(id) saving(diff_char, p(char(x1 x2)))
+cfout gender using 2, id(id) saving(diff_charstub, p(char(x1 x2) charstub(c)))
+u diff_char, clear
+assert _N
+assert Question == "gender"
+assert char_x1 == "abc"
+assert char_x2 == "123"
+unab all : _all
+loc expected id Question char_x1 char_x2 Master Using
+assert `:list all == expected'
+ren char_x1 cx1
+ren char_x2 cx2
+compdta diff_charstub
+drop cx?
+compdta diff
+cd ..
+
+* Test 86
+cd 86
+if c(stata_version) >= 13 {
+	u 1, clear
+	mata: st_global("gender[x]", x = (c("maxstrvarlen") + 1) * "x")
+	cfout gender using 2, id(id) saving(diff, p(char(x))) nopre
+	assert _N
+	assert "`:type char_x'" == "strL"
+	mata: assert(st_sdata(., "char_x") == J(st_nobs(), 1, x))
+}
+cd ..
+
+* Test 87
+cd 87
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+loc note1 And Winter slumbering in the open air,
+loc note2 Wears on his smiling face a dream of Spring!
+note gender: `note1'
+note gender: `note2'
+sa gen1
+cfout gender using 2, id(id) saving(diff_notes, p(notes(1 2)))
+cfout gender using 2, id(id) saving(diff_notesstub, p(notes(1 2) notesstub(n)))
+cfout gender using 2, id(id) saving(diff_char, p(char(note1 note2)))
+u diff_notes, clear
+assert _N
+assert Question == "gender"
+assert note1 == "`note1'"
+assert note2 == "`note2'"
+unab all : _all
+loc expected id Question note1 note2 Master Using
+assert `:list all == expected'
+ren note1 n1
+ren note2 n2
+compdta diff_notesstub
+forv i = 1/2 {
+	ren n`i' char_note`i'
+	lab var char_note`i' "Characteristic note`i'"
+}
+compdta diff_char
+drop char_note?
+compdta diff
+* Various -notes()- specifications
+u gen1, clear
+foreach notes in 1/2 2/1 _all "1/2 2/1" "1/2 _all" "_all 1/2" "1 _all 2" ///
+	"_all _all" {
+	cfout gender using 2, id(id) saving(diff_list, p(notes(`notes')) replace)
+	compdta diff_list diff_notes
+}
+cfout gender using 2, id(id) saving(diff_notes4, p(notes(1 2 4))) nopre
+assert note4 == ""
+drop note4
+compdta diff_notes
+u gen1, clear
+cfout gender using 2, id(id) saving(diff_notes4_2, p(notes(1 2 4 _all))) nopre
+compdta diff_notes4_2
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/
@@ -1455,6 +1606,28 @@ foreach opts in
 	"keepusing(gender)  usingval(gender)"
 	"keepusing(gender)  all(gender)"
 	"keepmaster(gender) keepusing(gender)"
+	p(varlab(id))
+	p(varlab(Question))
+	p(varlab(Master))
+	p(varlab(Using))
+	"p(varlab(diff)) all"
+	"p(varlab(gender)) keepmaster(gender)"
+	"p(varlab(gender)) keepusing(gender)"
+	"p(type(x) format(x))"
+	"p(type(x) vallabel(x))"
+	"p(type(x) varlabel(x))"
+	"p(type(char_x) char(x))"
+	"p(type(note1) notes(1))"
+	"p(format(x) vallabel(x))"
+	"p(format(x) varlabel(x))"
+	"p(format(char_x) char(x))"
+	"p(format(note1) notes(1))"
+	"p(vallabel(x) varlabel(x))"
+	"p(vallabel(char_x) char(x))"
+	"p(vallabel(note1) notes(1))"
+	"p(varlabel(char_x) char(x))"
+	"p(varlabel(note1) notes(1))"
+	"p(char(note1) notes(1) notesstub(char_note))"
 {;
 	#d cr
 	rcof "noi cfout gender using 2, id(id) saving(diff, `opts' replace)" == 198
@@ -1591,6 +1764,47 @@ rcof "noi cfout gender using 2, id(id) saving(diff, keepmaster(o*))" == 111
 rcof "noi cfout gender using 2, id(id) saving(diff, keepusing(onlyu))" == 111
 rcof "noi cfout gender using 2, id(id) saving(diff, keepusing(o*))" == 111
 compdta 1
+cd ..
+
+* Test 83
+cd 83
+u 1, clear
+foreach opt in type format vallabel varlabel {
+	#d ;
+	rcof "noi cfout gender using 2, id(id) saving(diff, p(`opt' `opt'(xyz)))"
+		== 198;
+	#d cr
+}
+cd ..
+
+* Test 85
+cd 85
+u 1, clear
+char gender[x] abc
+loc x31 : di _dup(31) "x"
+loc x32 : di _dup(32) "x"
+cfout gender using 2, id(id) saving(diff1, p(char(x) charstub(`x31')))
+#d ;
+rcof "noi cfout gender using 2, id(id)
+	saving(diff2, p(char(x) charstub(`x32')))" == 7;
+#d cr
+cd ..
+
+* Test 88
+cd 88
+u 1, clear
+note gender: Lugete, O Veneres Cupidinesque
+loc x31 : di _dup(31) "x"
+loc x32 : di _dup(32) "x"
+loc cfout noi cfout gender using 2, id(id)
+`cfout' saving(diff, p(note(1) notesstub(`x31')))
+erase diff.dta
+rcof "`cfout' saving(diff, p(note(1) notesstub(`x32')))" == 7
+rcof "`cfout' saving(diff, p(note(0)))" == 125
+rcof "`cfout' saving(diff, p(note(-1)))" == 125
+rcof "`cfout' saving(diff, p(note(1.5)))" == 126
+rcof "`cfout' saving(diff, p(note(x)))" == 121
+rcof `"`cfout' saving(diff, p(note(" ")))"' == 122
 cd ..
 
 

@@ -49,14 +49,6 @@ pr cfout, rclass
 	if `:length loc numcomp' ///
 		parse_cmd_opt numcomp, syntax(, *): `numcomp'
 
-	* Parse -saving()-.
-	if `:length loc saving' {
-		parse_saving `using', id(`id'): `saving'
-		loc keepmaster `s(keepmaster)'
-		loc keepusing  `s(keepusing)'
-		loc saving_args "`s(save_diffs)'"
-	}
-
 	* Define `cfvars', the list of variables to compare.
 	loc cfvars : list uniq varlist
 
@@ -66,6 +58,16 @@ pr cfout, rclass
 	else {
 		loc cfvars : list cfvars - id
 		loc warnid 1
+	}
+
+	* Parse -saving()-.
+	if `:length loc saving' {
+		tempfile propsdta
+		parse_saving `using', id(`id') cfvars(`cfvars') ///
+			propsdta(`propsdta'): `saving'
+		loc keepmaster `s(keepmaster)'
+		loc keepusing  `s(keepusing)'
+		loc saving_args "`s(save_diffs)'"
 	}
 
 	* Define `numvarsm'.
@@ -517,16 +519,30 @@ pr parse_cmd_opt
 	}
 end
 
+pr notes_count, rclass
+	syntax [varlist]
+
+	loc N 0
+	foreach var of loc varlist {
+		loc note0 : char `var'[note0]
+		if "`note0'" != "" ///
+			loc N = max(`N', `note0')
+	}
+
+	ret sca N = `N'
+end
+
 pr parse_saving, sclass
 	_on_colon_parse `0'
 	loc 0 "`s(before)'"
-	syntax using, id(varlist)
+	syntax using, id(varlist) cfvars(varlist) propsdta(str)
 	loc 0 "`s(after)'"
 
 	loc temp `using'
 	cap noi syntax anything(name=fn id=filename equalok everything), ///
 		[Variable(name) MASterval(name) USingval(name) All(name) All2 ///
-		KEEPMASter(varlist) KEEPUSing(str asis) LAbval csv replace]
+		KEEPMASter(varlist) KEEPUSing(str asis) Properties(str asis) LAbval ///
+		csv replace]
 	loc using `temp'
 	if _rc {
 		error_saving `=_rc'
@@ -562,19 +578,34 @@ pr parse_saving, sclass
 		/*NOTREACHED*/
 	}
 
+	if `:length loc properties' {
+		notes_count `cfvars'
+		loc notesN = r(N)
+	}
+
 	* Parse -keepusing()-.
-	if `:length loc keepusing' {
+	if `:length loc keepusing' | `:length loc properties' {
 		preserve
+
 		qui d `using'
 		if r(N) ///
 			qui u `using' in 1, clear
 		else
 			qui u `using', clear
-		cap noi unab keepusing : `keepusing'
-		if _rc {
-			error_saving `=_rc', sub(keepusing())
-			/*NOTREACHED*/
+
+		if `:length loc keepusing' {
+			cap noi unab keepusing : `keepusing'
+			if _rc {
+				error_saving `=_rc', sub(keepusing())
+				/*NOTREACHED*/
+			}
 		}
+
+		if `:length loc properties' {
+			notes_count `cfvars'
+			loc notesN = max(`notesN', r(N))
+		}
+
 		restore
 	}
 
@@ -594,10 +625,21 @@ pr parse_saving, sclass
 	if "`all2'" != "" ///
 		loc all diff
 
+	* Parse -properties()-.
+	if `:length loc properties' {
+		parse_saving_properties, saving(`propsdta') cfvars(`cfvars') ///
+			variable(`variable') notes_count(`notesN'): `properties'
+		qui d using `propsdta', varl
+		loc propvars `r(varlist)'
+		loc propvars : list propvars - variable
+	}
+
 	* Check variable names.
-	loc opts variable masterval usingval all keepmaster keepusing
+	loc properties `propvars'
+	loc opts variable masterval usingval all keepmaster keepusing properties
 	while `:list sizeof opts' {
 		gettoken opt1 opts : opts
+
 		foreach opt2 of loc opts {
 			loc overlap : list `opt1' & `opt2'
 			if "`overlap'" != "" {
@@ -623,10 +665,140 @@ pr parse_saving, sclass
 	sret loc keepmaster `keepmaster'
 	sret loc keepusing  `keepusing'
 	* Arguments for -save_diffs-
+	if `:length loc properties' ///
+		loc propsdta_opt propsdta(`propsdta')
 	loc args fn(`"`fn'"') variable(`variable') ///
 		masterval(`masterval') usingval(`usingval') all(`all') ///
-		keepmaster(`keepmaster') keepusing(`keepusing') `labval' `csv' `replace'
+		keepmaster(`keepmaster') keepusing(`keepusing') `propsdta_opt' ///
+		`labval' `csv' `replace'
 	sret loc save_diffs "`args'"
+end
+
+pr parse_saving_properties
+	_on_colon_parse `0'
+	loc 0 "`s(before)'"
+	syntax, saving(str) cfvars(varlist) variable(name) notes_count(integer)
+	loc 0 ", `s(after)'"
+
+	cap noi syntax, [Type(name) Type2 Format(name) Format2 ///
+		VALLabel(name) VALLabel2 VARLabel(name) VARLabel2 ///
+		Char(namelist) CHARStub(name) Notes(str) NOTESStub(name)]
+	loc sub sub(properties())
+	if _rc {
+		error_saving `=_rc', `sub'
+		/*NOTREACHED*/
+	}
+
+	foreach opt in type format vallabel varlabel {
+		if "``opt''" != "" & "``opt'2'" != "" {
+			di as err "suboptions `opt'() and `opt' are mutually exclusive"
+			error_saving 198, `sub'
+			/*NOTREACHED*/
+		}
+
+		* Default names
+		if "``opt'2'" != "" ///
+			loc `opt' `opt'
+	}
+
+	* Parse -char()- and -charstub()-.
+	if "`charstub'" == "" ///
+		loc charstub char_
+	loc char : list uniq char
+	foreach c of loc char {
+		loc charvar `charstub'`c'
+		loc charvars : list charvars | charvar
+
+		cap conf name `charvar'
+		if _rc {
+			di as err "suboptions char(), charstub(): `charvar' invalid name"
+			error_saving `=_rc', `sub'
+			/*NOTREACHED*/
+		}
+	}
+
+	* Parse -notes()- and -notesstub()-.
+	if "`notesstub'" == "" ///
+		loc notesstub note
+	loc _all _all
+	if `:list _all in notes' {
+		if `notes_count' {
+			numlist "1/`notes_count'"
+			loc notes_all `r(numlist)'
+		}
+
+		while `:list _all in notes' {
+			loc notes : list notes - _all
+		}
+	}
+	if "`notes'" != "" {
+		cap noi numlist "`notes'", min(1) int r(>0)
+		if _rc {
+			di as err "suboption notes() invalid"
+			error_saving `=_rc', `sub'
+			/*NOTREACHED*/
+		}
+		loc notes `r(numlist)'
+		loc notes : list uniq notes
+	}
+	loc notes : list notes | notes_all
+	if "`notes'" != "" {
+		numlist "`notes'", sort
+		loc notes `r(numlist)'
+
+		loc notes : list retok notes
+		loc notes " `notes'"
+		loc notevars : subinstr loc notes " " " `notesstub'", all
+		loc notes `notes'
+		loc notevars `notevars'
+
+		foreach var of loc notevars {
+			cap conf name `var'
+			if _rc {
+				di as err "suboptions notes(), notesstub(): `var' invalid name"
+				error_saving `=_rc', `sub'
+				/*NOTREACHED*/
+			}
+		}
+	}
+
+	* Check variable names.
+	loc tempchar `char'
+	loc char `charvars'
+	loc tempnotes `notes'
+	loc notes `notevars'
+	loc opts type format vallabel varlabel char notes
+	while `:list sizeof opts' {
+		gettoken opt1 opts : opts
+
+		foreach opt2 of loc opts {
+			loc overlap : list `opt1' & `opt2'
+			if "`overlap'" != "" {
+				gettoken first : overlap
+				error_overlap `first', what(variable) ///
+					opt1(`opt1', sub) opt2(`opt2', sub)
+				error_saving 198, `sub'
+				/*NOTREACHED*/
+			}
+		}
+
+		if `:list variable in `opt1'' {
+			error_overlap `variable', what(variable) opt1(variable, sub) ///
+				opt2("properties(`opt1'())", sub)
+			error_saving 198
+			/*NOTREACHED*/
+		}
+	}
+	loc char  `tempchar'
+	loc notes `tempnotes'
+
+	preserve
+
+	mata: load_props("cfvars", "variable", "type", "format", "vallabel", ///
+		"varlabel", "char", "charstub", "notes", "notesstub")
+	sort `variable'
+
+	qui sa `"`saving'"'
 end
 
 					/* parse user input		*/
@@ -713,8 +885,9 @@ pr save_diffs, rclass
 		tempmaster(str) [tempusing(str)] id(varlist)
 		[cfvars(varlist) cftemps(varlist)]
 		/* -saving()- arguments */
-		fn(str) variable(name) masterval(name) usingval(name) [all(name)]
-		[keepmaster(namelist) keepusing(namelist) labval csv replace]
+		fn(str) variable(name) masterval(name) usingval(name) [all(name)
+		keepmaster(namelist) keepusing(namelist) propsdta(str)
+		labval csv replace]
 		/* other */
 		[numcomp_cmd(name) numcomp_opts(str asis) dropdiff]
 	;
@@ -768,12 +941,25 @@ pr save_diffs, rclass
 		}
 	}
 
+	* -saving(, properties())-
+	if !`:length loc propsdta' ///
+		loc propvars `variable'
+	else {
+		qui d using `"`propsdta'"', varl
+		loc propvars `r(varlist)'
+
+		sort `variable'
+		qui merge `variable' using `"`propsdta'"', uniqus _merge(`merge')
+		qui drop if `merge' == 2
+		drop `merge'
+	}
+
 	* Sort so that within `id', Question remains sorted by
 	* the original variable order.
 	sort `id' `order'
 	drop `order'
 
-	order `id' `keepmaster' `keepusing' `variable' `all' `masterval' `usingval'
+	order `id' `keepmaster' `keepusing' `propvars' `all' `masterval' `usingval'
 
 	if "`csv'" == "" {
 		* Remove the dataset's label and characteristics.
@@ -942,6 +1128,78 @@ void attach_varlabs(`lclname' _varlist, `lclname' _varlabs)
 }
 
 					/* interface with Stata		*/
+/* -------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------- */
+					/* properties dataset	*/
+
+// Create and load the properties dataset.
+void load_props(`lclname' _cfvars, `lclname' _variable, `lclname' _type,
+	`lclname' _format, `lclname' _vallabel, `lclname' _varlabel,
+	`lclname' _char,  `lclname' _charstub,
+	`lclname' _notes, `lclname' _notesstub)
+{
+	`RS' nvars, nchars, ncharsall, i, j
+	`SS' name, charstub, notesstub, lab
+	`SC' var, type, format, vallab, varlab, chars, charsall
+	`SM' charcols
+
+	var = tokens(st_local(_cfvars))'
+	nvars = length(var)
+	type = format = vallab = varlab = J(nvars, 1, "")
+
+	chars = tokens(st_local(_char))
+	charsall = chars, "note" :+ tokens(st_local(_notes))
+	nchars = length(chars)
+	ncharsall = length(charsall)
+	charcols = J(nvars, ncharsall, "")
+
+	for (i = 1; i <= nvars; i++) {
+		type[i] = st_vartype(var[i])
+		format[i] = st_varformat(var[i])
+		vallab[i] = st_varvaluelabel(var[i])
+		varlab[i] = st_varlabel(var[i])
+
+		for (j = 1; j <= ncharsall; j++)
+			charcols[i, j] = st_global(sprintf("%s[%s]", var[i], charsall[j]))
+	}
+
+	st_dropvar(.)
+	st_store_new(var, st_local(_variable))
+
+	name = st_local(_type)
+	if (name != "")
+		st_store_new(type, name, "Storage type")
+
+	name = st_local(_format)
+	if (name != "")
+		st_store_new(format, name, "Display format")
+
+	name = st_local(_vallabel)
+	if (name != "")
+		st_store_new(vallab, name, "Value label")
+
+	name = st_local(_varlabel)
+	if (name != "")
+		st_store_new(varlab, name, "Variable label")
+
+	charstub = st_local(_charstub)
+	notesstub = st_local(_notesstub)
+	for (i = 1; i <= ncharsall; i++) {
+		if (i <= nchars) {
+			name = charstub + charsall[i]
+			lab = "Characteristic " + charsall[i]
+		}
+		else {
+			name = subinstr(charsall[i], "note", notesstub, 1)
+			lab  = subinstr(charsall[i], "note", "Note ", 1)
+		}
+		st_store_new(charcols[,i], name, lab)
+	}
+}
+
+					/* properties dataset	*/
 /* -------------------------------------------------------------------------- */
 
 

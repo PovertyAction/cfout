@@ -411,4 +411,44 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Basic tests of option <code>nomatch</code></td>
 </tr>
+<tr>
+	<td>81</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboption <code>saving(, properties())</code></td>
+</tr>
+<tr>
+	<td>82</td>
+	<td><code>saving()</code></td>
+	<td>Specify suboption <code>saving(, properties())</code> when one of the variables specified to <code>cfout</code> is not included.</td>
+</tr>
+<tr>
+	<td>83</td>
+	<td>User mistakes</td>
+	<td>Specify mutually exclusive suboptions to suboption <code>saving(, properties())</code>.</td>
+</tr>
+<tr>
+	<td>84</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboptions <code>saving(, properties(char() charstub()))</code></td>
+</tr>
+<tr>
+	<td>85</td>
+	<td>User mistakes</td>
+	<td>Specify suboptions <code>saving(, properties(char() charstub()))</code> that result in too long variable names.</td>
+</tr>
+<tr>
+	<td>86</td>
+	<td><code>saving()</code></td>
+	<td>Specify a characteristic to suboption <code>saving(, properties(char()))</code> that must be stored in a <code>strL</code>.</td>
+</tr>
+<tr>
+	<td>87</td>
+	<td><code>saving()</code></td>
+	<td>Basic tests of suboptions <code>saving(, properties(notes() notesstub()))</code></td>
+</tr>
+<tr>
+	<td>88</td>
+	<td>User mistakes</td>
+	<td>Specify invalid suboptions <code>saving(, properties(notes() notesstub()))</code>.</td>
+</tr>
 </table>
