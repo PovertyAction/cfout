@@ -1,11 +1,11 @@
 {smcl}
 {* *! version 1 10may2011}{...}
-{cmd:help cfout}
-{hline}
-
 {title:Title}
 
-    {hi:cfout} -- Compare two files, outsheeting a list of differences
+{phang}
+{cmd:cfout} {hline 2} Compare two datasets,
+optionally saving the list of differences to file
+
 
 {title:Syntax}
 
