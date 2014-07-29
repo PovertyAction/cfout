@@ -101,14 +101,15 @@ default is {cmd:note}{p_end}
 {p2colreset}{...}
 
 
+{marker description}{...}
 {title:Description}
 
 {pstd}
-{cmd:cfout} compares the variables in {varlist} from the dataset in memory
-			to the variables in {varlist} from the using dataset and saves
-			a list of differences to a .csv file.  It is useful if
-			you are doing data entry and want to get an easy-to-work-with
-			list of discrepancies between the first and second entries of a dataset.
+{cmd:cfout} compares {varlist} of the dataset in memory (the master dataset) to
+{varlist} of {it:{help filename}} (the using dataset).
+It uses unique ID variables to match observations.
+{cmd:cfout} optionally saves the list of differences to file.
+
 
 {title:Options}
 
