@@ -383,6 +383,8 @@ loc progdiscrep "
 	nc_default,				6
 	"nc_default ,"			6
 	"nc_range , range(.1)"	3
+	nc_two					7
+	nc_miss					7
 ";
 #d cr
 while `:list sizeof progdiscrep' {
