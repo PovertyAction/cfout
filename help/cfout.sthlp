@@ -111,17 +111,28 @@ It uses unique ID variables to match observations.
 {cmd:cfout} optionally saves the list of differences to file.
 
 
+{marker remarks}{...}
 {title:Remarks}
 
 {pstd}
-{cmd: cfout} is intended to be used as part of the data entry process
-	when data is entered two times for accuracy.
-	After the second entry, the datasets need to be reconciled.  {cmd: cfout}
-	will compare the first and second entries and generate a list of discrepancies
-	in a format that is useful for the data entry teams.  {bf: cfout} assumes that the variable specified in the id option uniquely
-	idenfifies observations in both datasets.  {bf: cfout} does not
-	compare variables that have a different	string/numeric type in both
-	datasets. {bf: cfout} also doesn't compare variables that are different in all observations.
+If the master and using data contain value labels with the same name,
+the ones from the master data are used.
+
+{pstd}
+Among the applications of {cmd:cfout} is data entry,
+for which the command may facilitate the reconciliation of
+two separate entries of the same dataset.
+{cmd:cfout} can output a list of differences in a format useful for
+data entry teams. The related SSC program {cmd:readreplace} then inputs
+the correct values from a similarly formatted file.
+
+{pstd}
+The GitHub repository for {cmd:cfout} is
+{browse "https://github.com/PovertyAction/cfout":here}.
+Previous versions may be found there: see the tags.
+If outdated syntax is specified, {cmd:cfout} issues a warning message describing
+how the command will be interpreted.
+
 
 {title:Options}
 
