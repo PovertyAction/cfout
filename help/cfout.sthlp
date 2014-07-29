@@ -111,6 +111,18 @@ It uses unique ID variables to match observations.
 {cmd:cfout} optionally saves the list of differences to file.
 
 
+{title:Remarks}
+
+{pstd}
+{cmd: cfout} is intended to be used as part of the data entry process
+	when data is entered two times for accuracy.
+	After the second entry, the datasets need to be reconciled.  {cmd: cfout}
+	will compare the first and second entries and generate a list of discrepancies
+	in a format that is useful for the data entry teams.  {bf: cfout} assumes that the variable specified in the id option uniquely
+	idenfifies observations in both datasets.  {bf: cfout} does not
+	compare variables that have a different	string/numeric type in both
+	datasets. {bf: cfout} also doesn't compare variables that are different in all observations.
+
 {title:Options}
 
 {phang}
@@ -143,18 +155,6 @@ It uses unique ID variables to match observations.
 	between the datasets, and to list any observations that existin in only one
 	dataset.
 
-
-{title:Remarks}
-
-{pstd}
-{cmd: cfout} is intended to be used as part of the data entry process
-	when data is entered two times for accuracy.
-	After the second entry, the datasets need to be reconciled.  {cmd: cfout}
-	will compare the first and second entries and generate a list of discrepancies
-	in a format that is useful for the data entry teams.  {bf: cfout} assumes that the variable specified in the id option uniquely
-	idenfifies observations in both datasets.  {bf: cfout} does not
-	compare variables that have a different	string/numeric type in both
-	datasets. {bf: cfout} also doesn't compare variables that are different in all observations.
 
 {title:Examples}
 
