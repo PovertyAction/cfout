@@ -558,10 +558,23 @@ string in the other{p_end}
 {p2colreset}{...}
 
 
-{title:Author}
+{marker acknowledgments}{...}
+{title:Acknowledgments}
 
-{phang}
-Ryan Knight, rknight at poverty-action.org
+{pstd}
+Christopher Robert of the Harvard Kennedy School suggested
+option {opt nonumeric}.
+
+
+{marker authors}{...}
+{title:Authors}
+
+{pstd}Ryan Knight, Innovations for Poverty Action{p_end}
+{pstd}rknight@poverty-action.org{p_end}
+
+{pstd}Matthew White, Innovations for Poverty Action{p_end}
+{pstd}mwhite@poverty-action.org{p_end}
+
 
 {title:Also see}
 
