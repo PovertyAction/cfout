@@ -579,6 +579,8 @@ option {opt nonumeric}.
 {title:Also see}
 
 {psee}
-Online:  {help cf}, {help compare}
+Help:  {manhelp cf D}, {manhelp compare D}, {helpb dta_equal}
+
 {psee}
-User-Written: {help readreplace}, {help cfby}, {help mergeall}
+User-written:  {helpb readreplace}, {helpb bcstats}, {helpb mergeall}
+{p_end}
