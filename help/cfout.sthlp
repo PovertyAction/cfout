@@ -532,15 +532,29 @@ use "first entry.dta"
 
 cfout region-no_good_at_all using "second entry.dta" , id(uniqueid)
 
-{title:Saved Results}
+{marker results}{...}
+{title:Stored results}
 
 {pstd}
-{cmd:cfout} saves the following in {cmd:r()}:
+{cmd:cfout} stores the following in {cmd:r()}:
 
-{synoptset 15 tabbed}{...}
-{p2col 5 15 19 2: Scalars}{p_end}
-{synopt:{cmd:r(discrep)}}number of discrepenacies{p_end}
-{synopt:{cmd:r(N)}}number of data points compared{p_end}
+{synoptset 20 tabbed}{...}
+{p2col 5 20 24 2: Scalars}{p_end}
+{synopt:{cmd:r(N)}}number of values compared;
+includes only the variables of {cmd:r(varlist)}{p_end}
+{synopt:{cmd:r(discrep)}}number of differences;
+includes only the variables of {cmd:r(varlist)}{p_end}
+{synopt:{cmd:r(Nonlym)}}number of observations only in the master dataset{p_end}
+{synopt:{cmd:r(Nonlyu)}}number of observations only in the using dataset{p_end}
+
+{p2col 5 20 24 2: Macros}{p_end}
+{synopt:{cmd:r(varlist)}}variables compared;
+does not include {cmd:r(varonlym)}, {cmd:r(difftype)}, or
+(if option {opt dropdiff} is specified) {cmd:r(alldiff)}{p_end}
+{synopt:{cmd:r(varonlym)}}variables only in the master dataset{p_end}
+{synopt:{cmd:r(difftype)}}variables that are numeric in one dataset and
+string in the other{p_end}
+{synopt:{cmd:r(alldiff)}}variables that differ on every observation{p_end}
 {p2colreset}{...}
 
 
