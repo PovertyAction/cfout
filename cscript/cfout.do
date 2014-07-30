@@ -471,6 +471,98 @@ compdta diff diff_nomatch
 cfout using gen2, id(id) saving(diff, replace)
 cd ..
 
+* Test 89
+loc curdir "`c(pwd)'"
+cd ../../help/example/2.0.0
+do gen
+cap erase diffs.dta
+clear
+* 1
+use firstEntry
+cfout region-no_good_at_all using secondEntry, id(uniqueid)
+* 2
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diffs)
+use diffs
+* 3
+use firstEntry
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diffs, ///
+	variable(varname) masterval(master_value) usingval(using_value) replace)
+use diffs
+* 4
+use firstEntry
+cfout region-no_good_at_all using secondEntry, id(uniqueid) ///
+	saving(diffs, keepmaster(deo) replace)
+use diffs
+* 5
+use firstEntry
+cfout region-no_good_at_all using secondEntry, id(uniqueid) ///
+	saving(diffs, all replace)
+use diffs
+count if diff
+* 6
+use firstEntry
+cfout region-no_good_at_all using secondEntry, id(uniqueid) ///
+	saving(diffs, properties(type) replace)
+use diffs
+generate isstrvar = strmatch(type, "str*")
+* 7
+use firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid) ///
+	saving(diffs, properties(type(storage_type)) replace)
+use diffs
+* Remarks for options strcomp() and numcomp()
+erase diffs.dta
+* -strcomp()-
+use firstEntry
+cfout firstname using secondEntry, id(uniqueid)
+cfout firstname using secondEntry, id(uniqueid) nopunct
+program remove_brackets
+	syntax varlist(min=2 max=2 string)
+
+	foreach var of local varlist {
+		replace `var' = subinstr(`var', "[", "", .)
+		replace `var' = subinstr(`var', "]", "", .)
+	}
+end
+cfout firstname using secondEntry, id(uniqueid) nopunct strcomp(remove_brackets)
+program fromto
+	syntax varlist(min=2 max=2 string), from(string) to(string)
+
+	foreach var of local varlist {
+		replace `var' = "`to'" if `var' == "`from'"
+	}
+end
+cfout firstname using secondEntry, id(uniqueid) nopunct strcomp(fromto, from("Lilly") to("Lily"))
+* -numcomp()-
+use firstEntry
+cfout age using secondEntry, id(uniqueid)
+program range5
+	syntax varlist(min=2 max=2 numeric), generate(name)
+	gettoken var1 varlist : varlist
+	gettoken var2 : varlist
+
+	generate `generate' = abs(`var1' - `var2') > 5
+end
+cfout age using secondEntry, id(uniqueid) numcomp(range5)
+program range
+	syntax varlist(min=2 max=2 numeric), generate(name) d(real)
+	gettoken var1 varlist : varlist
+	gettoken var2 : varlist
+
+	generate `generate' = abs(`var1' - `var2') > `d'
+end
+cfout age using secondEntry, id(uniqueid) numcomp(range, d(5))
+use firstEntry
+cfout firstname using secondEntry, id(uniqueid) nopunct strcomp(remove_brackets)
+cfout firstname using secondEntry, id(uniqueid) nopunct saving(diffs)
+use diffs
+remove_brackets Master Using
+drop if Master == Using
+display _N
+* Finish up
+erase diffs.dta
+cd "`curdir'"
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

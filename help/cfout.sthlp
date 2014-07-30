@@ -523,14 +523,76 @@ If both options {opt nopreserve} and {opt saving()} are specified,
 the differences dataset is left in memory.
 
 
+{marker examples}{...}
 {title:Examples}
 
 {pstd}
+Compare the variables {cmd:region-no_good_at_all} of
+the datasets {cmd:firstEntry.dta} and {cmd:secondEntry.dta},
+using variable {cmd:uniqueid} to match observations
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid){p_end}
+{txt}{...}
 
+{pstd}
+Save the differences to the file {cmd:diffs.dta}
+{p_end}{cmd}{...}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs){p_end}
+{phang2}. use diffs{p_end}
+{txt}{...}
 
-use "first entry.dta"
+{pstd}
+Save the differences dataset with alternative variable names
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs,
+	variable(varname) masterval(master_value) usingval(using_value)){p_end}
+{phang2}. use diffs{p_end}
+{txt}{...}
 
-cfout region-no_good_at_all using "second entry.dta" , id(uniqueid)
+{pstd}
+Add variable {cmd:deo} from {cmd:firstEntry.dta} to the differences dataset
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs, keepmaster(deo)){p_end}
+{phang2}. use diffs{p_end}
+{txt}{...}
+
+{pstd}
+Save all comparisons to the differences dataset, not just differences
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs, all){p_end}
+{phang2}. use diffs{p_end}
+{phang2}. count if diff{p_end}
+{txt}{...}
+
+{pstd}
+Save the storage types of the compared variables as
+an additional variable of the differences dataset
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs, properties(type)){p_end}
+{phang2}. use diffs{p_end}
+{phang2}. generate isstrvar = strmatch(type, "str*"){p_end}
+{txt}{...}
+
+{pstd}
+Save the storage types of the compared variables with
+an alternative variable name
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs, properties(type(storage_type))){p_end}
+{phang2}. use diffs{p_end}
+{txt}{...}
+
 
 {marker results}{...}
 {title:Stored results}

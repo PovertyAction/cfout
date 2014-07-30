@@ -80,3 +80,5 @@ program fromto
 end
 cfout firstname using secondEntry, id(uniqueid) nopunct strcomp(fromto, from(Lilly) to(Lily))
 assert r(discrep) < `nopunct'
+
+pr drop remove_brackets fromto
