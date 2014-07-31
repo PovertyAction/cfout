@@ -63,11 +63,11 @@ default is {cmd:Question}{p_end}
 default is {cmd:Master}{p_end}
 {synopt:{opth us:ingval(newvar)}}name of using value variable;
 default is {cmd:Using}{p_end}
-{synopt:{opth keepmas:ter(varlist)}}variables to keep from master data{p_end}
-{synopt:{opth keepus:ing(varlist)}}variables to keep from using data{p_end}
 {synopt:{cmdab:a:ll}[{cmd:(}{newvar}{cmd:)}]}save all comparisons,
 not just differences, creating a variable named {it:newvar} to mark differences;
 default is {cmd:diff}{p_end}
+{synopt:{opth keepmas:ter(varlist)}}variables to keep from master data{p_end}
+{synopt:{opth keepus:ing(varlist)}}variables to keep from using data{p_end}
 {synopt:{opth p:roperties(cfout##popts:popts)}}save variable properties as
 variables{p_end}
 {synopt:{opt la:bval}}save labeled master and using values{p_end}
@@ -440,16 +440,6 @@ The variables for the master and using values are string if and only if
 one of the compared variables is string.
 
 {phang2}
-{opt keepmaster(varlist)} specifies variables from the master data to include in
-the differences dataset. They are merged into the differences dataset using
-the unique ID variables.
-
-{phang2}
-{opt keepusing(varlist)} specifies variables from the using data to include in
-the differences dataset. They are merged into the differences dataset using
-the unique ID variables.
-
-{phang2}
 {opt all(newvar)} specifies that the differences dataset include
 all comparisons, not just differences.
 It creates an indicator variable named {it:newvar} that
@@ -466,6 +456,16 @@ If option {opt labval} is specified,
 the {opt all()} indicator variable marks whether the values actually differ,
 not whether they do after being formatted:
 two different values may appear the same after being formatted.
+
+{phang2}
+{opt keepmaster(varlist)} specifies variables from the master data to include in
+the differences dataset. They are merged into the differences dataset using
+the unique ID variables.
+
+{phang2}
+{opt keepusing(varlist)} specifies variables from the using data to include in
+the differences dataset. They are merged into the differences dataset using
+the unique ID variables.
 
 {phang2}
 {opt properties(popts)} saves the properties of variables in
@@ -554,15 +554,6 @@ Save the differences dataset with alternative variable names
 {txt}{...}
 
 {pstd}
-Add variable {cmd:deo} from {cmd:firstEntry.dta} to the differences dataset
-{p_end}{cmd}{...}
-{phang2}. use firstEntry{p_end}
-{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
-	saving(diffs, keepmaster(deo)){p_end}
-{phang2}. use diffs{p_end}
-{txt}{...}
-
-{pstd}
 Save all comparisons to the differences dataset, not just differences
 {p_end}{cmd}{...}
 {phang2}. use firstEntry{p_end}
@@ -570,6 +561,15 @@ Save all comparisons to the differences dataset, not just differences
 	saving(diffs, all){p_end}
 {phang2}. use diffs{p_end}
 {phang2}. count if diff{p_end}
+{txt}{...}
+
+{pstd}
+Add variable {cmd:deo} from {cmd:firstEntry.dta} to the differences dataset
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diffs, keepmaster(deo)){p_end}
+{phang2}. use diffs{p_end}
 {txt}{...}
 
 {pstd}
