@@ -456,4 +456,19 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Help file examples for <code>cfout</code> version 2.0.0</td>
 </tr>
+<tr>
+	<td>90</td>
+	<td>Basic</td>
+	<td>Specify both a string variable and option <code>numcomp()</code>.</td>
+</tr>
+<tr>
+	<td>91</td>
+	<td>Basic</td>
+	<td>Specify a program to option <code>numcomp()</code> that alters the sort order.</td>
+</tr>
+<tr>
+	<td>92</td>
+	<td>Basic</td>
+	<td>Specify programs to options <code>strcomp()</code> and <code>numcomp()</code> that produce different results based on the Stata version (<code>_caller()</code>).</td>
+</tr>
 </table>

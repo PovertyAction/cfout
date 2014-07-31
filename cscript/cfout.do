@@ -565,6 +565,118 @@ display _N
 erase diffs.dta
 cd "`curdir'"
 
+* Test 90
+cd 90
+pr nc_is_diff
+	syntax varlist(min=2 max=2 numeric), Generate(name)
+	gettoken var1 var2 : varlist
+
+	gen `generate' = `var1' != `var2'
+end
+u firstEntry, clear
+cfout region-firstname using secondEntry, id(uniqueid) saving(diffs)
+cfout region-firstname using secondEntry, id(uniqueid) saving(diffs_nc) ///
+	numcomp(nc_is_diff)
+compdta diffs diffs_nc
+cd ..
+
+* Test 91
+cd 91
+pr nc_sort_rev
+	syntax varlist(min=2 max=2), Generate(name)
+	gettoken var1 var2 : varlist
+
+	gsort -`var1' -`var2'
+
+	gen `generate' = `var1' != `var2'
+end
+pr nc_jumble
+	syntax varlist(min=2 max=2), Generate(name)
+	gettoken var1 var2 : varlist
+
+	tempvar u
+	gen `u' = runiform()
+	sort `u'
+
+	gen `generate' = `var1' != `var2'
+end
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diffs)
+loc ctr 0
+foreach numcomp in nc_sort_rev `:di _dup(25) "nc_jumble "' {
+	loc ++ctr
+	di "numcomp(`numcomp')"
+	cfout region-no_good_at_all using secondEntry, ///
+		id(uniqueid) numcomp(`numcomp') saving(diffs_numcomp, replace)
+	compdta diffs_numcomp diffs
+}
+assert `ctr' == 26
+cd ..
+
+* Test 92
+cd 92
+pr sc_same92
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	replace `var1' = `var2'
+end
+pr sc_diff92
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	assert strlen(`var1') < c(maxstrvarlen)
+	replace `var1' = `var2' + "x"
+end
+pr sc_caller
+	loc cmd = cond(_caller() < 11, "sc_same92", "sc_diff92")
+	`cmd' `0'
+end
+pr nc_same92
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 0
+end
+pr nc_diff92
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 1
+end
+pr nc_caller
+	loc cmd = cond(_caller() < 11, "nc_same92", "nc_diff92")
+	`cmd' `0'
+end
+if c(stata_version) >= 11 {
+	u firstEntry, clear
+
+	cfout firstname using secondEntry, id(uniqueid) ///
+		saving(diff_sc_same) strcomp(sc_same92)
+	assert !r(discrep)
+	cfout firstname using secondEntry, id(uniqueid) ///
+		saving(diff_sc_diff) strcomp(sc_diff92)
+	assert r(discrep) == r(N)
+	assert r(N)
+	foreach caller in 10.1 11 {
+		vers `caller': cfout firstname using secondEntry, id(uniqueid) ///
+			saving(diff_sc_caller, replace) strcomp(sc_caller)
+		compdta diff_sc_caller diff_sc_`=cond(`caller' < 11, "same", "diff")'
+	}
+
+	cfout gender using secondEntry, id(uniqueid) ///
+		saving(diff_nc_same) numcomp(nc_same92)
+	assert !r(discrep)
+	cfout gender using secondEntry, id(uniqueid) ///
+		saving(diff_nc_diff) numcomp(nc_diff92)
+	assert r(discrep) == r(N)
+	assert r(N)
+	foreach caller in 10.1 11 {
+		vers `caller': cfout gender using secondEntry, id(uniqueid) ///
+			saving(diff_nc_caller, replace) numcomp(nc_caller)
+		compdta diff_nc_caller diff_nc_`=cond(`caller' < 11, "same", "diff")'
+	}
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
@@ -667,6 +779,16 @@ pr sc_from_to
 	replace `var1' = `to' if `var1' == `from'
 end
 
+pr sc_sort_rev
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	gsort -`var1' -`var2'
+	replace `var1' = `var2' if mod(_n, 2) == 1
+	assert strlen(`var1') < c(maxstrvarlen)
+	replace `var1' = `var2' + "x" if mod(_n, 2) == 0
+end
+
 * Test 17
 cd 17
 #d ;
@@ -688,6 +810,7 @@ loc optsN "
 								3
 	`"strcomp(sc_from_to , from("wizard") to("pineapple"))"'
 								6
+	strcomp(sc_sort_rev)		4
 ";
 #d cr
 while `:list sizeof optsN' {
@@ -744,7 +867,10 @@ while `:list sizeof optsN' {
 
 	if `:length loc strcomp' {
 		gettoken cmd_name cmd_opts : strcomp, p(", ")
+		gen order = _n
 		`cmd_name' `master' `using'`cmd_opts'
+		sort order
+		drop order
 	}
 
 	keep if `master' != `using'
