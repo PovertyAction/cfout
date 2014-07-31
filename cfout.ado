@@ -1384,7 +1384,7 @@ void cfout(
 		else
 			st_sviewL(mu = "", ., (cfvars[i], cftemps[i]))
 
-		if (numcomp_cmd == "")
+		if (st_isstrvar(cfvars[i]) | numcomp_cmd == "")
 			diff = mu[,1] :!= mu[,2]
 		else {
 			// -numcomp()-
@@ -1443,9 +1443,9 @@ void cfout(
 		}
 
 		// This should require no view updates.
-		st_dropvar((cfvars[i], cftemps[i]))
-		if (numcomp_cmd != "")
+		if (st_isnumvar(cfvars[i]) & numcomp_cmd != "")
 			st_dropvar(numcomp_gen)
+		st_dropvar((cfvars[i], cftemps[i]))
 	}
 
 	// Load the differences dataset.

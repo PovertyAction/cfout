@@ -456,4 +456,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Help file examples for <code>cfout</code> version 2.0.0</td>
 </tr>
+<tr>
+	<td>90</td>
+	<td>Basic</td>
+	<td>Specify both a string variable and option <code>numcomp()</code>.</td>
+</tr>
 </table>

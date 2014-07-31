@@ -565,6 +565,21 @@ display _N
 erase diffs.dta
 cd "`curdir'"
 
+* Test 90
+cd 90
+pr nc_is_diff
+	syntax varlist(min=2 max=2 numeric), Generate(name)
+	gettoken var1 var2 : varlist
+
+	gen `generate' = `var1' != `var2'
+end
+u firstEntry, clear
+cfout region-firstname using secondEntry, id(uniqueid) saving(diffs)
+cfout region-firstname using secondEntry, id(uniqueid) saving(diffs_nc) ///
+	numcomp(nc_is_diff)
+compdta diffs diffs_nc
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
