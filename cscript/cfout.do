@@ -22,7 +22,8 @@ di "`c(username)'"
 di "`:environment computername'"
 
 clear
-clear matrix
+if c(stata_version) >= 11 ///
+	clear matrix
 clear mata
 set varabbrev off
 set type float
@@ -1255,7 +1256,7 @@ cd ..
 cd 56
 u gen1
 cfout labeled formatted using gen2, id(id) saving(diff, labval) nopre
-compdta expected/diff
+compdta diff_expected
 cd ..
 
 * Test 57
@@ -1281,7 +1282,7 @@ tempfile 2
 sa `2'
 u gen1, clear
 cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
-compdta expected/diff
+compdta diff_expected
 cd ..
 
 * Test 59
@@ -1289,7 +1290,7 @@ cd 56
 u gen1, clear
 lab drop _all
 cfout labeled formatted using gen2, id(id) saving(diff, labval replace) nopre
-compdta expected/diff
+compdta diff_expected
 cd ..
 
 * Test 60
@@ -1297,12 +1298,13 @@ cd 56
 u gen2, clear
 lab dir
 assert "`r(names)'" == "lab"
-lab de `r(names)' 0 "Value zero" 1 "Value one", replace
+lab drop lab
+lab de lab 0 "Value zero" 1 "Value one"
 tempfile 2
 sa `2'
 u gen1, clear
 cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
-compdta expected/diff
+compdta diff_expected
 cd ..
 
 * Test 61
@@ -1313,7 +1315,7 @@ tempfile 2
 sa `2'
 u gen1, clear
 cfout labeled formatted using `2', id(id) saving(diff, labval replace) nopre
-compdta expected/diff
+compdta diff_expected
 cd ..
 
 * Test 71

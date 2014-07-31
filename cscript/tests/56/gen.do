@@ -13,7 +13,8 @@ end
 
 form labeled formatted %td
 
-lab de lab 0 "Value 0" 1 ""
+loc blank = cond(c(stata_version) >= 11, "", "BLANK")
+lab de lab 0 "Value 0" 1 "`blank'"
 lab val labeled lab
 
 sa gen1
@@ -33,3 +34,12 @@ form labeled formatted %td
 lab val labeled lab
 
 sa gen2
+
+u expected/diff, clear
+
+if c(stata_version) < 11 {
+	replace Master = "`blank'" if Master == ""
+	replace Using  = "`blank'" if Using  == ""
+}
+
+sa diff_expected

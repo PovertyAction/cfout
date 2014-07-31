@@ -330,7 +330,8 @@ end
 pr assert_is_opt
 	mata: st_local("name", (regexm(st_local("0"), "^(.*)\(\)$") ? ///
 		regexs(1) : st_local("0")))
-	if "`name'" != strtoname("`name'") | strpos("`name'", "`") ///
+	cap conf name `name'
+	if `:list sizeof name' > 1 | _rc ///
 		err 198
 end
 
