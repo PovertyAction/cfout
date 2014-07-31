@@ -14,7 +14,7 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 <tr>
 	<td>1</td>
 	<td>Basic</td>
-	<td>Help file example for <code>cfout</code> version 1.</td>
+	<td>Help file example for <code>cfout</code> version 1</td>
 </tr>
 <tr>
 	<td>2</td>
@@ -450,5 +450,10 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>88</td>
 	<td>User mistakes</td>
 	<td>Specify invalid suboptions <code>saving(, properties(notes() notesstub()))</code>.</td>
+</tr>
+<tr>
+	<td>89</td>
+	<td>Basic</td>
+	<td>Help file examples for <code>cfout</code> version 2.0.0</td>
 </tr>
 </table>
