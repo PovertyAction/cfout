@@ -613,6 +613,70 @@ foreach numcomp in nc_sort_rev `:di _dup(25) "nc_jumble "' {
 assert `ctr' == 26
 cd ..
 
+* Test 92
+cd 92
+pr sc_same92
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	replace `var1' = `var2'
+end
+pr sc_diff92
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	assert strlen(`var1') < c(maxstrvarlen)
+	replace `var1' = `var2' + "x"
+end
+pr sc_caller
+	loc cmd = cond(_caller() < 11, "sc_same92", "sc_diff92")
+	`cmd' `0'
+end
+pr nc_same92
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 0
+end
+pr nc_diff92
+	syntax varlist(min=2 max=2), Generate(name)
+
+	gen `generate' = 1
+end
+pr nc_caller
+	loc cmd = cond(_caller() < 11, "nc_same92", "nc_diff92")
+	`cmd' `0'
+end
+if c(stata_version) >= 11 {
+	u firstEntry, clear
+
+	cfout firstname using secondEntry, id(uniqueid) ///
+		saving(diff_sc_same) strcomp(sc_same92)
+	assert !r(discrep)
+	cfout firstname using secondEntry, id(uniqueid) ///
+		saving(diff_sc_diff) strcomp(sc_diff92)
+	assert r(discrep) == r(N)
+	assert r(N)
+	foreach caller in 10.1 11 {
+		vers `caller': cfout firstname using secondEntry, id(uniqueid) ///
+			saving(diff_sc_caller, replace) strcomp(sc_caller)
+		compdta diff_sc_caller diff_sc_`=cond(`caller' < 11, "same", "diff")'
+	}
+
+	cfout gender using secondEntry, id(uniqueid) ///
+		saving(diff_nc_same) numcomp(nc_same92)
+	assert !r(discrep)
+	cfout gender using secondEntry, id(uniqueid) ///
+		saving(diff_nc_diff) numcomp(nc_diff92)
+	assert r(discrep) == r(N)
+	assert r(N)
+	foreach caller in 10.1 11 {
+		vers `caller': cfout gender using secondEntry, id(uniqueid) ///
+			saving(diff_nc_caller, replace) numcomp(nc_caller)
+		compdta diff_nc_caller diff_nc_`=cond(`caller' < 11, "same", "diff")'
+	}
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

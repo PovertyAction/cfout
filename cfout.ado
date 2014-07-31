@@ -239,7 +239,8 @@ pr cfout, rclass
 		cap conf str var `var'
 		if !_rc {
 			qui cfsetstr `var' `temp', ///
-				`lower' `upper' `nopunct' strcomp(`strcomp')
+				`lower' `upper' `nopunct' ///
+				strcomp(`strcomp') caller(`=_caller()')
 		}
 	}
 
@@ -253,12 +254,13 @@ pr cfout, rclass
 
 	if !`:length loc saving' {
 		mata: cfout("discrep", "alldiff", "cfvars", "cftemps", ///
-			"numcomp_cmd", "numcomp_opts", "`dropdiff'" != "")
+			"numcomp_cmd", "numcomp_opts", `=_caller()', "`dropdiff'" != "")
 	}
 	else {
 		save_diffs, tempmaster(`tempmaster') tempusing(`tempusing') id(`id') ///
 			cfvars(`cfvars') cftemps(`cftemps') `saving_args' ///
-			numcomp_cmd(`numcomp_cmd') numcomp_opts(`numcomp_opts') `dropdiff'
+			numcomp_cmd(`numcomp_cmd') numcomp_opts(`numcomp_opts') ///
+			caller(`=_caller()') `dropdiff'
 		loc discrep = r(discrep)
 		loc alldiff `r(alldiff)'
 	}
@@ -831,7 +833,8 @@ end
 					/* string comparison	*/
 
 pr cfsetstr
-	syntax varlist(min=2 max=2), [lower upper NOPUNCT strcomp(str asis)]
+	syntax varlist(min=2 max=2), caller(real) ///
+		[lower upper NOPUNCT strcomp(str asis)]
 
 	foreach var of loc varlist {
 		if "`lower'`upper'" != "" {
@@ -851,7 +854,7 @@ pr cfsetstr
 
 	if `:length loc strcomp' {
 		gettoken cmd opts : strcomp, p(", ")
-		cap noi `cmd' `varlist'`opts'
+		cap noi vers `caller': `cmd' `varlist'`opts'
 		if _rc {
 			di as err "(error in option {bf:strcomp()})"
 			ex `=_rc'
@@ -877,7 +880,7 @@ pr save_diffs, rclass
 		keepmaster(namelist) keepusing(namelist) propsdta(str)
 		labval csv replace]
 		/* other */
-		[numcomp_cmd(name) numcomp_opts(str asis) dropdiff]
+		caller(real) [numcomp_cmd(name) numcomp_opts(str asis) dropdiff]
 	;
 	#d cr
 
@@ -899,7 +902,7 @@ pr save_diffs, rclass
 		/* output */				"discrep", "alldiff",
 		/* comparison variables */	"cfvars", "cftemps",
 		/* other */
-		"numcomp_cmd", "numcomp_opts", "`dropdiff'" != "",
+		"numcomp_cmd", "numcomp_opts", `caller', "`dropdiff'" != "",
 		/* -id()- */				"ididx",
 		/* new variable names */	"variable", "masterval", "usingval", "all",
 		/* other */					"`labval'" != "");
@@ -1306,7 +1309,8 @@ void cfout(
 	/* output */				`lclname' _discrep, `lclname' _alldiff,
 	/* comparison variables */	`lclname' _cfvars, `lclname' _cftemps,
 	/* other */
-	`lclname' _numcomp_cmd, `lclname' _numcomp_opts, `boolean' _dropdiff,
+	`lclname' _numcomp_cmd, `lclname' _numcomp_opts, `RS' _caller,
+	`boolean' _dropdiff,
 	/* ---------------------------------------------------------------------- */
 					/* -saving()-			*/
 	/* ---------------------------------------------------------------------- */
@@ -1330,7 +1334,7 @@ void cfout(
 	`boolean' diffdta
 	pointer(`TC') rowvector cols
 
-	N_ARGS = 7
+	N_ARGS = 8
 	N_ARGS_SAVING = 6
 	assert(anyof((N_ARGS, N_ARGS + N_ARGS_SAVING), args()))
 	diffdta = args() == N_ARGS + N_ARGS_SAVING
@@ -1391,7 +1395,7 @@ void cfout(
 
 			cmd = sprintf("%s %s %s, generate(%s) %s",
 				numcomp_cmd, cfvars[i], cftemps[i], numcomp_gen, numcomp_opts)
-			stata("cap noi " + cmd)
+			stata(sprintf("cap noi version %f: %s", _caller, cmd))
 			if (c("rc")) {
 				error_numcomp(c("rc"), cmd)
 				/*NOTREACHED*/

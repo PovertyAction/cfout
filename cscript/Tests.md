@@ -466,4 +466,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Specify a program to option <code>numcomp()</code> that alters the sort order.</td>
 </tr>
+<tr>
+	<td>92</td>
+	<td>Basic</td>
+	<td>Specify programs to options <code>strcomp()</code> and <code>numcomp()</code> that produce different results based on the Stata version (<code>_caller()</code>).</td>
+</tr>
 </table>
