@@ -461,4 +461,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Specify both a string variable and option <code>numcomp()</code>.</td>
 </tr>
+<tr>
+	<td>91</td>
+	<td>Basic</td>
+	<td>Specify a program to option <code>numcomp()</code> that alters the sort order.</td>
+</tr>
 </table>

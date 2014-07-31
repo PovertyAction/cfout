@@ -580,6 +580,39 @@ cfout region-firstname using secondEntry, id(uniqueid) saving(diffs_nc) ///
 compdta diffs diffs_nc
 cd ..
 
+* Test 91
+cd 91
+pr nc_sort_rev
+	syntax varlist(min=2 max=2), Generate(name)
+	gettoken var1 var2 : varlist
+
+	gsort -`var1' -`var2'
+
+	gen `generate' = `var1' != `var2'
+end
+pr nc_jumble
+	syntax varlist(min=2 max=2), Generate(name)
+	gettoken var1 var2 : varlist
+
+	tempvar u
+	gen `u' = runiform()
+	sort `u'
+
+	gen `generate' = `var1' != `var2'
+end
+u firstEntry, clear
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diffs)
+loc ctr 0
+foreach numcomp in nc_sort_rev `:di _dup(25) "nc_jumble "' {
+	loc ++ctr
+	di "numcomp(`numcomp')"
+	cfout region-no_good_at_all using secondEntry, ///
+		id(uniqueid) numcomp(`numcomp') saving(diffs_numcomp, replace)
+	compdta diffs_numcomp diffs
+}
+assert `ctr' == 26
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
@@ -682,6 +715,16 @@ pr sc_from_to
 	replace `var1' = `to' if `var1' == `from'
 end
 
+pr sc_sort_rev
+	syntax varlist(min=2 max=2)
+	gettoken var1 var2 : varlist
+
+	gsort -`var1' -`var2'
+	replace `var1' = `var2' if mod(_n, 2) == 1
+	assert strlen(`var1') < c(maxstrvarlen)
+	replace `var1' = `var2' + "x" if mod(_n, 2) == 0
+end
+
 * Test 17
 cd 17
 #d ;
@@ -703,6 +746,7 @@ loc optsN "
 								3
 	`"strcomp(sc_from_to , from("wizard") to("pineapple"))"'
 								6
+	strcomp(sc_sort_rev)		4
 ";
 #d cr
 while `:list sizeof optsN' {
@@ -759,7 +803,10 @@ while `:list sizeof optsN' {
 
 	if `:length loc strcomp' {
 		gettoken cmd_name cmd_opts : strcomp, p(", ")
+		gen order = _n
 		`cmd_name' `master' `using'`cmd_opts'
+		sort order
+		drop order
 	}
 
 	keep if `master' != `using'

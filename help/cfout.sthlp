@@ -402,6 +402,11 @@ The master value variable retains its variable name from the master data,
 but the name of the using value variable will differ.
 
 {pstd}
+The comparison programs are free to sort the data without
+restoring the original order.
+In fact, this may reduce the time cost of the programs.
+
+{pstd}
 Finally, note that the comparison programs may be run {cmd:noisily} so that
 error messages are displayed correctly.
 To reduce this output, add {helpb quietly} within the programs.
