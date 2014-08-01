@@ -678,6 +678,26 @@ if c(stata_version) >= 11 {
 }
 cd ..
 
+* Test 93
+cd 93
+u 1, clear
+cfout gender using 2, id(id) saving(diffs)
+loc N = r(N)
+assert r(discrep)
+copy 1.dta gen1.dta
+foreach using in 1 gen1 {
+	u 1, clear
+	cfout gender using `using', id(id) saving(diffs_self, replace)
+	assert r(N) == `N'
+	assert !r(discrep)
+	u diffs, clear
+	drop in 1/L
+	recast str1 Question
+	recast byte Master Using
+	compdta diffs_self
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/

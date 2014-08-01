@@ -1065,6 +1065,8 @@ void st_sviewL(`SM' V, `RM' i, `TR' j)
 	}
 	else if (eltype(var) == "string") {
 		max = max(strlen(var))
+		if (max >= .)
+			max = 0
 		strpound = sprintf("str%f", min((max((max, 1)), c("maxstrvarlen"))))
 		if (c("stata_version") < 13)
 			return(strpound)
