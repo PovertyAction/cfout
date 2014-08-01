@@ -2235,6 +2235,13 @@ rcof "`cfout' saving(diff, p(note(x)))" == 121
 rcof `"`cfout' saving(diff, p(note(" ")))"' == 122
 cd ..
 
+* Test 101
+cd 101
+u 1, clear
+rcof "noi cfout gender using 2, id(id) saving(differences dataset)" == 198
+cfout gender using 2, id(id) saving("differences dataset")
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* finish up			*/

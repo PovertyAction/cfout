@@ -511,4 +511,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td><code>saving()</code></td>
 	<td>Specify suboption <code>saving(, labval)</code> along with a variable that is associated with a value label that does not exist.</td>
 </tr>
+<tr>
+	<td>101</td>
+	<td>User mistakes</td>
+	<td>Specify a filename to <code>saving()</code> that contains a space and is not enclosed in quotes.</td>
+</tr>
 </table>
