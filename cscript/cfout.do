@@ -698,6 +698,61 @@ foreach using in 1 gen1 {
 }
 cd ..
 
+* Test 94
+cd 94
+u 2, clear
+foreach var of var id gender {
+	loc post`var' : di _dup(`=c(namelen) - strlen("`var'")') "x"
+	ren `var' `var'`post`var''
+}
+sa gen2
+u 1, clear
+cfout gender using 2, id(id) saving(diffs)
+ren id id`postid'
+ren gender gender`postgender'
+cfout gender`postgender' using gen2, id(id`postid') saving(diffs_long) nopre
+assert _N
+ren id`postid' id
+replace Question = "gender" if Question == "gender`postgender'"
+compress Question
+compdta diffs
+cd ..
+
+* Test 98
+cd 98
+u 1, clear
+cfout gender using 2, id(id) saving(diff_12)
+u 2, clear
+cfout gender using 1, id(id) saving(diff_21) nopre
+ren Master t
+ren Using Master
+ren t Using
+loc lab : var lab Master
+lab var Master "`:var lab Using'"
+lab var Using "`lab'"
+move Master Using
+compdta diff_12
+cd ..
+
+* Test 99
+cd 99
+if c(stata_version) >= 13 {
+	u 2, clear
+	tostring gender, replace
+	assert "`:type gender'" != "strL"
+	sa gen2_str
+	recast strL gender
+	sa gen2_strL
+	u 1, clear
+	tostring gender, replace
+	assert "`:type gender'" != "strL"
+	cfout gender using gen2_strL, id(id)
+	recast strL gender
+	cfout gender using gen2_strL, id(id)
+	cfout gender using gen2_str, id(id)
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
@@ -757,6 +812,119 @@ cd 30
 u gen1, clear
 cfout gender using gen2, id(id1 id2 id1 id2) saving(diff34)
 compdta diff34 gen_diff
+cd ..
+
+* Test 95
+cd 95
+u 2, clear
+tostring id, replace
+sa gen2
+u 1, clear
+cfout gender using 2, id(id) saving(diffs)
+tostring id, replace
+cfout gender using gen2, id(id) saving(diffs_str) nopre
+d, varl
+loc sort `r(sortlist)'
+destring id, replace
+isid `sort'
+sort `sort'
+form id %8.0g
+char id[tostring]
+char id[destring]
+compdta diffs
+cd ..
+
+* Test 96
+cd 96
+u 2, clear
+pr longid
+	mata: st_sstore(., st_addvar("str`c(maxstrvarlen)'", "x"), ///
+		J(st_nobs(), 1, c("maxstrvarlen") * "x"))
+	tostring id, replace
+	char id[tostring]
+	replace id = id + substr(x, 1, strlen(x) - strlen(id))
+	assert strlen(id) == c(maxstrvarlen)
+end
+longid
+sa gen2
+u 1, clear
+cfout gender using 2, id(id) saving(diffs)
+longid
+cfout gender using gen2, id(id) saving(diffs_str) nopre
+d, varl
+loc sort `r(sortlist)'
+destring id, replace ignore(x)
+isid `sort'
+sort `sort'
+form id %8.0g
+char id[destring]
+compdta diffs
+cd ..
+
+* Test 97
+cd 97
+* Numeric
+u 1, clear
+cfout gender using 2, id(id) saving(diff) nopre
+levelsof id
+assert "`r(levels)'" == "72 138"
+u 2, clear
+pr missid_num
+	cou if id == 72
+	assert r(N)
+	cou if id == .
+	assert !r(N)
+	replace id = . if id == 72
+
+	cou if id == 138
+	assert r(N)
+	cou if id == .a
+	assert !r(N)
+	replace id = .a if id == 138
+end
+missid_num
+sa gen2
+u 1, clear
+missid_num
+cfout gender using gen2, id(id) saving(diff_miss_num) nopre
+cou if id == .
+assert r(N)
+cou if id == .a
+assert r(N)
+replace id = 72  if id == .
+replace id = 138 if id == .a
+isid id
+sort id
+compdta diff
+* String
+u diff, clear
+tostring id, replace
+char id[tostring]
+isid id
+sort id
+sa diff_str
+u 2, clear
+pr missid_str
+	tostring id, replace
+	char id[tostring]
+
+	cou if id == "72"
+	assert r(N)
+	cou if id == ""
+	assert !r(N)
+	replace id = "" if id == "72"
+end
+missid_str
+sa gen2, replace
+u 1, clear
+missid_str
+cfout gender using gen2, id(id) saving(diff_miss_str) nopre
+cou if id == ""
+assert r(N)
+replace id = "72" if id == ""
+isid id
+sort id
+compdta diff_str
 cd ..
 
 

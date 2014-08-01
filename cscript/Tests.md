@@ -476,4 +476,34 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Compare a dataset to itself.</td>
 </tr>
+<tr>
+	<td>94</td>
+	<td>Basic</td>
+	<td>Specify a variable and an ID variable with 32-character names.</td>
+</tr>
+<tr>
+	<td>95</td>
+	<td><code>id()</code></td>
+	<td>Specify a single string variable to option <code>id()</code>.</td>
+</tr>
+<tr>
+	<td>96</td>
+	<td><code>id()</code></td>
+	<td>Specify a string variable to option <code>id()</code> whose storage type is the widest <code>str#</code> type (<code>str`c(maxstrvarlen)'</code>).</td>
+</tr>
+<tr>
+	<td>97</td>
+	<td><code>id()</code></td>
+	<td>Specify ID variables that contain <code>sysmiss</code>, extended missing, and blank values.</td>
+</tr>
+<tr>
+	<td>98</td>
+	<td>Basic</td>
+	<td>Compare two datasets both ways, switching which one is master and which is using.</td>
+</tr>
+<tr>
+	<td>99</td>
+	<td>Basic</td>
+	<td>Specify a variable that is <code>strL</code> in one or both datasets.</td>
+</tr>
 </table>
