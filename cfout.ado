@@ -498,6 +498,7 @@ pr parse_cmd_opt
 	gettoken cmdname 0 : command, p(", ")
 	cap conf name `cmdname'
 	if `:list sizeof cmdname' > 1 | _rc {
+		* cscript 62
 		di as err "invalid command name"
 		di as err "(error in option {bf:`opt'()})"
 		ex 198
@@ -505,6 +506,7 @@ pr parse_cmd_opt
 
 	cap noi syntax `syntax'
 	if _rc {
+		* cscript 50
 		di as err "(error in option {bf:`opt'()})"
 		ex `=_rc'
 	}
@@ -543,6 +545,7 @@ pr parse_saving, sclass
 	* Parse `fn'.
 	gettoken fn rest : fn
 	if `:length loc rest' {
+		* cscript 101
 		di as err "invalid filename"
 		error_saving 198
 		/*NOTREACHED*/
@@ -564,6 +567,7 @@ pr parse_saving, sclass
 
 	* Check -all()- and -all-.
 	if "`all'" != "" & "`all2'" != "" {
+		* cscript 55
 		di as err "suboptions all() and all are mutually exclusive"
 		error_saving 198
 		/*NOTREACHED*/
@@ -587,6 +591,7 @@ pr parse_saving, sclass
 		if `:length loc keepusing' {
 			cap noi unab keepusing : `keepusing'
 			if _rc {
+				* cscript 73
 				error_saving `=_rc', sub(keepusing())
 				/*NOTREACHED*/
 			}
@@ -682,6 +687,7 @@ pr parse_saving_properties
 
 	foreach opt in type format vallabel varlabel {
 		if "``opt''" != "" & "``opt'2'" != "" {
+			* cscript 83
 			di as err "suboptions `opt'() and `opt' are mutually exclusive"
 			error_saving 198, `sub'
 			/*NOTREACHED*/
@@ -702,6 +708,7 @@ pr parse_saving_properties
 
 		cap conf name `charvar'
 		if _rc {
+			* cscript 85
 			di as err "suboptions char(), charstub(): `charvar' invalid name"
 			error_saving `=_rc', `sub'
 			/*NOTREACHED*/
@@ -725,6 +732,7 @@ pr parse_saving_properties
 	if "`notes'" != "" {
 		cap noi numlist "`notes'", min(1) int r(>0)
 		if _rc {
+			* cscript 88
 			di as err "suboption notes() invalid"
 			error_saving `=_rc', `sub'
 			/*NOTREACHED*/
@@ -746,6 +754,7 @@ pr parse_saving_properties
 		foreach var of loc notevars {
 			cap conf name `var'
 			if _rc {
+				* cscript 88
 				di as err "suboptions notes(), notesstub(): `var' invalid name"
 				error_saving `=_rc', `sub'
 				/*NOTREACHED*/
@@ -765,6 +774,7 @@ pr parse_saving_properties
 		foreach opt2 of loc opts {
 			loc overlap : list `opt1' & `opt2'
 			if "`overlap'" != "" {
+				* cscript 29
 				gettoken first : overlap
 				error_overlap `first', what(variable) ///
 					opt1(`opt1', sub) opt2(`opt2', sub)
@@ -774,6 +784,7 @@ pr parse_saving_properties
 		}
 
 		if `:list variable in `opt1'' {
+			* cscript 29
 			error_overlap `variable', what(variable) opt1(variable, sub) ///
 				opt2("properties(`opt1'())", sub)
 			error_saving 198
@@ -857,6 +868,7 @@ pr cfsetstr
 		gettoken cmd opts : strcomp, p(", ")
 		cap noi vers `caller': `cmd' `varlist'`opts'
 		if _rc {
+			* cscript 52
 			di as err "(error in option {bf:strcomp()})"
 			ex `=_rc'
 		}
@@ -1403,11 +1415,13 @@ void cfout(
 				numcomp_cmd, cfvars[i], cftemps[i], numcomp_gen, numcomp_opts)
 			stata(sprintf("cap noi version %f: %s", _caller, cmd))
 			if (c("rc")) {
+				// cscript 64
 				error_numcomp(c("rc"), cmd)
 				/*NOTREACHED*/
 			}
 
 			if (st_isstrvar(numcomp_gen)) {
+				// cscript 68
 				errprintf(numcomp_cmd + " created string variable where " +
 					"numeric variable expected\n")
 				error_numcomp(109, cmd)
