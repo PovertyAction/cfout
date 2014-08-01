@@ -506,4 +506,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Specify a variable that is <code>strL</code> in one or both datasets.</td>
 </tr>
+<tr>
+	<td>100</td>
+	<td><code>saving()</code></td>
+	<td>Specify suboption <code>saving(, labval)</code> along with a variable that is associated with a value label that does not exist.</td>
+</tr>
 </table>

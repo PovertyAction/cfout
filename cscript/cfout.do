@@ -1842,6 +1842,24 @@ cfout gender using 2, id(id) saving(diff_notes4_2, p(notes(1 2 4 _all))) nopre
 compdta diff_notes4_2
 cd ..
 
+* Test 100
+cd 100
+u 1, clear
+cfout gender using 2, id(id) saving(diff)
+cfout gender using 2, id(id) saving(diff_labval, labval) nopre
+destring Master Using, replace
+char Master[destring]
+char Using[destring]
+form Master Using %8.0g
+compdta diff
+u 1, clear
+lab val gender sex
+lab dir
+assert "`r(names)'" == ""
+cfout gender using 2, id(id) saving(diff_labval2, labval) nopre
+compdta diff_labval
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* old syntax			*/

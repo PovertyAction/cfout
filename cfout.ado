@@ -1266,6 +1266,9 @@ void diff_dta_post(
 			// -saving(, labval)-
 			format = st_varformat(cfvar)
 			vallab = st_varvaluelabel(cfvar)
+			if (vallab != "")
+				if (!st_vlexists(vallab))
+					vallab = ""
 			if (vallab == "")
 				comps = strofreal(comps, format)
 			else {
