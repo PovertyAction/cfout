@@ -1019,7 +1019,7 @@ loc TM	transmorphic matrix
 
 loc boolean		`RS'
 loc True		1
-loc False		1
+loc False		0
 
 * A local macro name
 loc lclname		`SS'
