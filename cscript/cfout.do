@@ -4,6 +4,8 @@
 
 * 1 to execute profile.do after completion; 0 not to.
 local profile 1
+* 1 to test -readreplace- example (89); 0 not to.
+local readreplace 1
 
 
 /* -------------------------------------------------------------------------- */
@@ -32,6 +34,7 @@ set more off
 
 cd ..
 adopath ++ `"`c(pwd)'"'
+adopath ++ `"`c(pwd)'/cfby"'
 adopath ++ `"`c(pwd)'/cscript/ado"'
 cd cscript
 
@@ -513,8 +516,47 @@ use firstEntry, clear
 cfout region-no_good_at_all using secondEntry, id(uniqueid) ///
 	saving(diffs, properties(type(storage_type)) replace)
 use diffs
+* 8
+erase diffs.dta
+use firstEntry
+rename deo deo1
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diffs, all keepmaster(deo1) keepusing(deo))
+use diffs, clear
+rename deo deo2
+generate swap = deo1 > deo2
+generate t = deo1 if swap
+replace deo1 = deo2 if swap
+replace deo2 = t if swap
+drop swap t
+bysort deo*: generate total = _N
+by deo*: egen total_diff = total(diff)
+by deo*: generate error_rate = 100 * total_diff / total
+format error_rate %9.2f
+sort deo*
+egen tag = tag(deo*)
+list deo* total_diff total error_rate if tag, abbreviate(32) noobs
+* 9
+if `readreplace' {
+clear
+use firstEntry
+readreplace using correctedValues.csv, id(uniqueid) variable(question) value(correctvalue)
+cfout region-no_good_at_all using firstEntry,  id(uniqueid) saving(diff1, all keepusing(deo))
+cfout region-no_good_at_all using secondEntry, id(uniqueid) saving(diff2, all keepusing(deo))
+use diff1, clear
+append using diff2
+bysort deo: generate total = _N
+by deo: egen total_diff = total(diff)
+by deo: generate error_rate = 100 * total_diff / total
+format error_rate %9.2f
+sort deo
+egen tag = tag(deo)
+list deo total_diff total error_rate if tag, abbreviate(32) noobs
+erase diff1.dta
+erase diff2.dta
+}
 * Remarks for options strcomp() and numcomp()
 erase diffs.dta
+clear
 * -strcomp()-
 use firstEntry
 cfout firstname using secondEntry, id(uniqueid)
@@ -763,6 +805,53 @@ if c(stata_version) >= 13 {
 	assert Master == "x"
 	assert Using  == char(0)
 }
+cd ..
+
+* Test 103
+cd 103
+u firstEntry, clear
+cfby region-no_good_at_all using secondEntry, id(uniqueid) by(deo)
+mat cfby_q = r(q)
+mat cfby_e = r(e)
+ren deo deo1
+cfout region-no_good_at_all using secondEntry, ///
+	id(uniqueid) saving(diffs, all keepmaster(deo1) keepusing(deo) replace)
+u diffs, clear
+ren deo deo2
+gen swap = deo1 > deo2
+gen t = deo1 if swap
+replace deo1 = deo2 if swap
+replace deo2 = t if swap
+drop swap t
+bys deo*: gen total = _N
+by deo*: egen total_diff = total(diff)
+by deo*: gen error_rate = total_diff / total
+by deo*: keep if _n == 1
+mata:
+mats = "cfby_q", "cfby_e"
+for (i = 1; i <= length(mats); i++) {
+	X = st_matrix(mats[i])
+	assert(rows(X) == cols(X))
+	len = rows(X)
+	X = vec(X)
+	X = J(rows(X), 2, .), X
+	row = 0
+	for (j = 1; j <= len; j++) {
+		for (k = 1; k <= len; k++) {
+			row++
+			X[row, 1] = min((j, k))
+			X[row, 2] = max((j, k))
+		}
+	}
+	X = uniqrows(X)
+	assert(rows(X) == st_nobs())
+	assert(X[,1] == st_data(., "deo1"))
+	assert(X[,2] == st_data(., "deo2"))
+	st_store(., st_addvar("double", mats[i]), X[,3])
+}
+end
+assert cfby_q == total
+assert cfby_e == total_diff
 cd ..
 
 

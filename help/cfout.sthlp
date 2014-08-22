@@ -598,6 +598,54 @@ an alternative variable name
 {phang2}. use diffs{p_end}
 {txt}{...}
 
+{pstd}
+For data that has been entered twice, compare the first and second entries,
+calculating discrepancy rates for each pair of data entry operators.
+This yields the same results as the SSC program {cmd:cfby}.
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. * Variable deo identifies the data entry operator.{p_end}
+{phang2}. rename deo deo1{p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry,
+	id(uniqueid) saving(diffs, all keepmaster(deo1) keepusing(deo)){p_end}
+{phang2}. use diffs, clear{p_end}
+{phang2}. rename deo deo2{p_end}
+{phang2}. generate swap = deo1 > deo2{p_end}
+{phang2}. generate t = deo1 if swap{p_end}
+{phang2}. replace deo1 = deo2 if swap{p_end}
+{phang2}. replace deo2 = t if swap{p_end}
+{phang2}. drop swap t{p_end}
+{phang2}. bysort deo*: generate total = _N{p_end}
+{phang2}. by deo*: egen total_diff = total(diff){p_end}
+{phang2}. by deo*: generate error_rate = 100 * total_diff / total{p_end}
+{phang2}. format error_rate %9.2f{p_end}
+{phang2}. sort deo*{p_end}
+{phang2}. egen tag = tag(deo*){p_end}
+{phang2}. list deo* total_diff total error_rate if tag, abbreviate(32) noobs{p_end}
+{txt}{...}
+
+{pstd}
+For twice entered data and a list of correct values,
+determine the error rates of individual data entry operators
+(not pairs as above)
+{p_end}{cmd}{...}
+{phang2}. use firstEntry{p_end}
+{phang2}. readreplace using correctedValues.csv, id(uniqueid) variable(question) value(correctvalue){p_end}
+{phang2}. cfout region-no_good_at_all using firstEntry,{space 2}id(uniqueid)
+	saving(diff1, all keepusing(deo)){p_end}
+{phang2}. cfout region-no_good_at_all using secondEntry, id(uniqueid)
+	saving(diff2, all keepusing(deo)){p_end}
+{phang2}. use diff1, clear{p_end}
+{phang2}. append using diff2{p_end}
+{phang2}. bysort deo: generate total = _N{p_end}
+{phang2}. by deo: egen total_diff = total(diff){p_end}
+{phang2}. by deo: generate error_rate = 100 * total_diff / total{p_end}
+{phang2}. format error_rate %9.2f{p_end}
+{phang2}. sort deo{p_end}
+{phang2}. egen tag = tag(deo){p_end}
+{phang2}. list deo total_diff total error_rate if tag, abbreviate(32) noobs{p_end}
+{txt}{...}
+
 
 {marker results}{...}
 {title:Stored results}

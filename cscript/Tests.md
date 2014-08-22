@@ -521,4 +521,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>Basic</td>
 	<td>Compare a <code>str#</code> value to a <code>\0</code> character, saving the differences dataset. The variable holding the <code>\0</code> character should be <code>strL</code>.</td>
 </tr>
+<tr>
+	<td>103</td>
+	<td>Basic</td>
+	<td>Calculate <code>cfby</code> statistics.</td>
+</tr>
 </table>
