@@ -1,5 +1,11 @@
 {smcl}
 {* *! version 1 10may2011}{...}
+{pstd}
+{cmd:cfby} has been superseded by the SSC program {cmd:cfout} version 2.0.0.
+{cmd:cfby} continues to run as before, but it is no longer supported.
+This is the original help file, which will not be updated.
+
+
 {cmd:help cfby}
 {hline}
 
