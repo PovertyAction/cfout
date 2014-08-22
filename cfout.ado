@@ -1080,9 +1080,10 @@ void st_sviewL(`SM' V, `RM' i, `TR' j)
 		if (max >= .)
 			max = 0
 		strpound = sprintf("str%f", min((max((max, 1)), c("maxstrvarlen"))))
-		if (c("stata_version") < 13)
+		if (c("stata_version") < 13 | !max)
 			return(strpound)
-		return(max <= c("maxstrvarlen") ? strpound : "strL")
+		return(max > c("maxstrvarlen") | any(strpos(var, char(0))) ?
+			"strL" : strpound)
 	}
 	else {
 		_error("invalid var")

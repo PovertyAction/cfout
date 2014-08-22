@@ -516,4 +516,9 @@ Contributions of new tests are welcome. When adding a test to the cscript, pleas
 	<td>User mistakes</td>
 	<td>Specify a filename to <code>saving()</code> that contains a space and is not enclosed in quotes.</td>
 </tr>
+<tr>
+	<td>102</td>
+	<td>Basic</td>
+	<td>Compare a <code>str#</code> value to a <code>\0</code> character, saving the differences dataset. The variable holding the <code>\0</code> character should be <code>strL</code>.</td>
+</tr>
 </table>

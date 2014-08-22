@@ -753,6 +753,18 @@ if c(stata_version) >= 13 {
 }
 cd ..
 
+* Test 102
+cd 102
+if c(stata_version) >= 13 {
+	u gen1, clear
+	cfout s using gen2, id(id)
+	cfout s using gen2, id(id) saving(diff) nopre
+	assert _N == 1
+	assert Master == "x"
+	assert Using  == char(0)
+}
+cd ..
+
 
 /* -------------------------------------------------------------------------- */
 					/* id()					*/
