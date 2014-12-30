@@ -695,7 +695,8 @@ option {opt nonumeric}.
 {title:Also see}
 
 {psee}
-Help:  {manhelp cf D}, {manhelp compare D}, {helpb dta_equal}
+Help:  {manhelp cf D}, {manhelp compare D}, {manhelp dta_equal P},
+{manhelp datasignature D}
 
 {psee}
 User-written:  {helpb readreplace}, {helpb bcstats}, {helpb mergeall}
