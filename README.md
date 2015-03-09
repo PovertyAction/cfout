@@ -541,16 +541,16 @@ The help file looks best when viewed in Stata as SMCL.
 <p>
 <a name="authors"></a><b><u>Authors</u></b>
 <p>
-    Ryan Knight, Innovations for Poverty Action
-    rknight@poverty-action.org
+    Ryan Knight
+    Matthew White
 <p>
-    Matthew White, Innovations for Poverty Action
-    mwhite@poverty-action.org
+    For questions or suggestions, submit a GitHub issue or e-mail
+    researchsupport@poverty-action.org.
 <p>
 <p>
 <b><u>Also see</u></b>
 <p>
-    Help:  <b>[D] cf</b>, <b>[D] compare</b>, <b>dta_equal</b>
+    Help:  <b>[D] cf</b>, <b>[D] compare</b>, <b>[P] dta_equal</b>, <b>[D] datasignature</b>
 <p>
     User-written:  <b>readreplace</b>, <b>bcstats</b>, <b>mergeall</b>
 </pre>
